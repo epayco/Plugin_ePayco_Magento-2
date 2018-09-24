@@ -84,10 +84,10 @@ define(
 			        country = customerData.country_id;
 		        } else {
 			        var defaultConf = parseInt(window.checkoutConfig.customerData.default_billing);
-			        var  name_billing = window.checkoutConfig.customerData.addresses[defaultConf -1].firstname + ' '+ window.checkoutConfig.customerData.addresses[defaultConf -1].lastname
+			        var  name_billing = window.checkoutConfig.customerData.addresses[0].firstname + ' '+ window.checkoutConfig.customerData.addresses[0].lastname;
 			        mobile = window.checkoutConfig.customerData.telephone;
-			        var address_billing = window.checkoutConfig.customerData.addresses[defaultConf -1].inline;
-			        country = window.checkoutConfig.customerData.addresses[defaultConf -1].country_id;
+			        var address_billing = window.checkoutConfig.customerData.addresses[0].inline;
+			        country = window.checkoutConfig.customerData.addresses[0].country_id;
 		        }
 		        var lang = '';
 		        var temp = window.checkoutConfig.payment.Epayco.language.split("_");
