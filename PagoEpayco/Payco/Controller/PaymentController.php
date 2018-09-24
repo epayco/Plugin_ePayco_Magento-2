@@ -9,12 +9,14 @@ public function __construct(
 
 	\Magento\Checkout\Model\Session $checkoutSession,
 	\Magento\Sales\Model\OrderFactory $orderFactory,
-	\Magento\Quote\Model\QuoteManagement $quote_management
+	\Magento\Quote\Model\QuoteManagement $quote_management,
+	\Magento\Checkout\Model\Cart $cart
 ) {
 	
 	$this->checkoutSession = $checkoutSession;
 	$this->orderFactory = $orderFactory;
 	$this->quoteManagement = $quote_management;
+	$this->cart = $cart;
 	
 	parent::__construct($context);
 }
@@ -151,10 +153,13 @@ public function __construct(
 //		$orderId=$order->getIncrementId();
 		
 		
-		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-		$last_order_increment_id = $objectManager->create('\Magento\Sales\Model\Order')->getCollection()->getLastItem()->getIncrementId();
-		
-		return $last_order_increment_id+1;
+//		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+//		$last_order_increment_id = $objectManager->create('\Magento\Sales\Model\Order')->getCollection()->getLastItem()->getIncrementId();
+//
+//		return $last_order_increment_id+1;
+		$carrito = $this->checkoutSession->getQuote()->getId();
+		return $carrito;
+	
 	}
 	
 }

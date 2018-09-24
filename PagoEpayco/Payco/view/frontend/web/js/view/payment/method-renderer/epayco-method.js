@@ -39,7 +39,7 @@ define(
 	        },**/
 	        renderCheckout: function() {
 		        
-		        console.log(window);
+		        //console.log(window);
 		        var ord = this.placeOrder(quote);
 		        console.log(ord);
 		        // var quote = quote.shippingAddress();
@@ -65,13 +65,13 @@ define(
 			        
 		        	items += ', '+window.checkoutConfig.quoteItemData[i].product.name;
 		        }
-		        console.log(items);
+		        //console.log(items);
 		       // window.checkoutConfig.quoteItemData.foreach(function(item){
 			   //     items += ', '+item.product.name;
 		       // });
 		        
 		        
-		        var orderFromBack = this.getOrderId();
+		        var orderFromBack = quote.getQuoteId();
 		        console.log(orderFromBack);
 		        var docType='';
 		        var mobile = '';

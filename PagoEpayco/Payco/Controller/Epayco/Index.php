@@ -84,6 +84,7 @@
 			//$resultPage = $this->resultPageFactory->create();
 			//$resultPage->getConfig()->getTitle()->prepend(__('Custom Front View'));
 			//return $resultPage;
+			
 			$result = $this->resultJsonFactory->create();
 			$storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
 			$urlRedirect = $this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope);
@@ -101,9 +102,9 @@
 					if(isset($dataTransaction) && $dataTransaction->success){
 						
 						$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-						$realOrderId= str_pad($dataTransaction->data->x_id_invoice, 9, "0", STR_PAD_LEFT);
-						$orderId = $realOrderId;
-						$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($orderId);
+						//$realOrderId= str_pad($dataTransaction->data->x_id_invoice, 9, "0", STR_PAD_LEFT);
+						$orderId = (Integer)$dataTransaction->data->x_id_invoice;
+						$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
 						/*$objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
 						$orderDatamodel = $objectManager->get('Magento\Sales\Model\Order')->getCollection()->getLastItem();
 						$orderId   =   $orderDatamodel->getId();
@@ -156,9 +157,9 @@
 						$signature =  $signature = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
 						if($x_signature == $signature){
 							$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-							$realOrderId= str_pad($_REQUEST['x_id_invoice'], 9, "0", STR_PAD_LEFT);
-							$orderId = $realOrderId;
-							$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($orderId);
+//							$realOrderId= str_pad($_REQUEST['x_id_invoice'], 9, "0", STR_PAD_LEFT);
+							$orderId = $x_id_invoice;
+							$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
 							
 							$x_response     = $_REQUEST['x_response'];
 							$x_motivo       = $_REQUEST['x_response_reason_text'];
