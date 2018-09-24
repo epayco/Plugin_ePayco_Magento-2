@@ -122,7 +122,12 @@
 							$order->setState("fraud")->setStatus("fraud");
 						}
 						//$order->addStatusToHistory($order->getStatus(), 'ref_payco: '.$_GET['ref_payco']);
-						$order->save();
+						try{
+							$order->save();
+						} catch(\Exception $e){
+							return true;
+						}
+						
 						//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
 						//$this->orderRepository->save($order);
 						//$resultRedirect = $this->resultPageFactory->create(ResultFactory::TYPE_REDIRECT);
