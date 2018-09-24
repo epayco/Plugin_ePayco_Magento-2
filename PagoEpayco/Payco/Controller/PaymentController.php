@@ -147,8 +147,10 @@ public function __construct(
 		$reservedOrderId = $this->checkoutSession->getQuote()->getReservedOrderId();
 		return $reservedOrderId+1;**/
 		
-		//$order = $this->checkoutSession->getLastRealOrder();
-		//$orderId=$order->getIncrementId();
+//		$order = $this->checkoutSession->getLastRealOrder();
+//		$orderId=$order->getIncrementId();
+		
+		
 		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 		$last_order_increment_id = $objectManager->create('\Magento\Sales\Model\Order')->getCollection()->getLastItem()->getIncrementId();
 		

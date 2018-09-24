@@ -40,6 +40,8 @@ define(
 	        renderCheckout: function() {
 		        
 		        console.log(window);
+		        var ord = this.placeOrder(quote);
+		        console.log(ord);
 		        // var quote = quote.shippingAddress();
 		        var customerData = checkoutData.getShippingAddressFromData();
 		        console.log(quote);
@@ -116,7 +118,7 @@ define(
 			
 		        };
 		        handler.open(data);
-		       this.placeOrder();
+		        
 	        },
 	        getOrderId: function(){
 		        return window.checkoutConfig.payment.Epayco.getOrderId;

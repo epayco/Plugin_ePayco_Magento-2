@@ -120,7 +120,7 @@
 						} else if($code == 12)  {
 							$order->setState("fraud")->setStatus("fraud");
 						}
-						$order->addStatusToHistory($order->getStatus(), 'ref_payco: '.$_GET['ref_payco']);
+						//$order->addStatusToHistory($order->getStatus(), 'ref_payco: '.$_GET['ref_payco']);
 						$order->save();
 						//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
 						//$this->orderRepository->save($order);
