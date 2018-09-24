@@ -141,31 +141,50 @@
 				} else {
 					
 					if(isset($_REQUEST['x_response'])){
-						$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-						$realOrderId= str_pad($_REQUEST['x_id_invoice'], 9, "0", STR_PAD_LEFT);
-						$orderId = $realOrderId;
-						$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($orderId);
-						
+						$p_cust_id_cliente = $this->scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope);
+						$p_key             = $this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope);;
 						$x_response     = $_REQUEST['x_response'];
 						$x_motivo       = $_REQUEST['x_response_reason_text'];
 						$x_id_invoice   = $_REQUEST['x_id_invoice'];
+						$x_currency_code  = $_REQUEST['x_currency_code'];
+						$x_amount         = $_REQUEST['x_amount'];
+						$x_signature      = $_REQUEST['x_signature'];
 						$x_autorizacion = $_REQUEST['x_approval_code'];
-						$code = $x_response;
-						if($code == 1){
-							$order->setState("complete")->setStatus("complete");
-						} else if($code == 3){
-							$order->setState("pending")->setStatus("pending");
-						} else if($code == 2 || $code == 6 || $code == 9 || $code == 10){
-							$order->setState("canceled")->setStatus("canceled");
-						} else if($code == 4){
-							$order->setState("pending")->setStatus("pending");
-						} else if($code == 12)  {
-							$order->setState("fraud")->setStatus("fraud");
+						$x_transaction_id = $_REQUEST['x_transaction_id'];
+						$x_ref_payco      = $_REQUEST['x_ref_payco'];
+						
+						$signature =  $signature = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
+						if($x_signature == $signature){
+							$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+							$realOrderId= str_pad($_REQUEST['x_id_invoice'], 9, "0", STR_PAD_LEFT);
+							$orderId = $realOrderId;
+							$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($orderId);
+							
+							$x_response     = $_REQUEST['x_response'];
+							$x_motivo       = $_REQUEST['x_response_reason_text'];
+							$x_id_invoice   = $_REQUEST['x_id_invoice'];
+							$x_autorizacion = $_REQUEST['x_approval_code'];
+							$code = $x_response;
+							if($code == 1){
+								$order->setState("complete")->setStatus("complete");
+							} else if($code == 3){
+								$order->setState("pending")->setStatus("pending");
+							} else if($code == 2 || $code == 6 || $code == 9 || $code == 10){
+								$order->setState("canceled")->setStatus("canceled");
+							} else if($code == 4){
+								$order->setState("pending")->setStatus("pending");
+							} else if($code == 12)  {
+								$order->setState("fraud")->setStatus("fraud");
+							}
+							$order->save();
+							//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
+							//$order->save();
+							return true;
 						}
-						$order->save();
-						//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
-						//$order->save();
-						return true;
+						else{
+							return true;
+						}
+						
 						
 					} else{
 						return $result->setData('No se creo la orden');
