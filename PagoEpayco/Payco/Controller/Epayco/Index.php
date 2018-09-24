@@ -125,7 +125,11 @@
 						try{
 							$order->save();
 						} catch(\Exception $e){
-							return true;
+							if($urlRedirect != ''){
+								return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
+							} else {
+								return $this->resultRedirectFactory->create()->setUrl('/');
+							}
 						}
 						
 						//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
@@ -139,6 +143,12 @@
 						}
 						
 						
+					} else {
+						if($urlRedirect != ''){
+							return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
+						} else {
+							return $this->resultRedirectFactory->create()->setUrl('/');
+						}
 					}
 					
 					//return $this->resultPageFactory->create()->addHandle('confirmation_epayco_index');
