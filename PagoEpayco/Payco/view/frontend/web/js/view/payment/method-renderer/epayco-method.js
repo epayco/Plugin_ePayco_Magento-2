@@ -60,7 +60,17 @@ define(
 		        for (var i = window.checkoutConfig.quoteItemData.length - 1; i >= 0; i--) {
 			        taxes += window.checkoutConfig.quoteItemData[i].tax_amount
 		        }
-		
+		        var items = '';
+		        for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
+			        
+		        	items += ', '+window.checkoutConfig.quoteItemData[i].product.name;
+		        }
+		        console.log(items);
+		       // window.checkoutConfig.quoteItemData.foreach(function(item){
+			   //     items += ', '+item.product.name;
+		       // });
+		        
+		        
 		        var orderFromBack = this.getOrderId();
 		        console.log(orderFromBack);
 		        var docType='';
@@ -88,8 +98,8 @@ define(
 		        amount = totals._latestValue.grand_total;
 		        var data={
 			        //Parametros compra (obligatorio)
-			        name: window.checkoutConfig.payment.Epayco.payco_title,
-			        description: window.checkoutConfig.payment.Epayco.payco_description,
+			        name: items,
+			        description: items,
 			        invoice: this.getOrderId(),
 			        currency: window.checkoutConfig.quoteData.store_currency_code,
 			        amount: amount,
