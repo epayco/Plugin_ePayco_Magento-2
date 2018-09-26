@@ -17,7 +17,7 @@ Necesita tener instalado Magento 2 con todas sus dependencias y una cuenta en eP
 1- Clonar el repositorio en su máquina.
 
 ```
-git clone https://github.com/juanMarulanda/magento2.git
+git clone https://github.com/epayco/magento2.x.git
 ```
 2- Ingresar a la carpeta creada y copiar el contenido en su instalacion en magento en la ruta ruta/de/su/instalacion/app/code/
 ```
