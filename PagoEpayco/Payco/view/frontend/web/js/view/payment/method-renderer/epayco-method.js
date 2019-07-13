@@ -42,6 +42,7 @@ define(
 				//console.log(window);
 				var ord = this.placeOrder(quote);
 				console.log(ord);
+				var totals = quote.getTotals();
 				// var quote = quote.shippingAddress();
 				var customerData = checkoutData.getShippingAddressFromData();
 				console.log(quote);
@@ -57,9 +58,7 @@ define(
 				})
 
 				var taxes = 0;
-				for (var i = window.checkoutConfig.quoteItemData.length - 1; i >= 0; i--) {
-					taxes += parseFloat(window.checkoutConfig.quoteItemData[i].tax_amount)
-				}
+				taxes = totals._latestValue.base_tax_amount
 				taxes = ''+taxes;
 				var items = '';
 				for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
@@ -80,9 +79,9 @@ define(
 				var country = '';
 				//calcular base iva
 				var tax_base = 0;
-				for (var i = window.checkoutConfig.quoteItemData.length - 1; i >= 0; i--) {
-					tax_base += parseFloat(window.checkoutConfig.quoteItemData[i].base_price)
-				}
+
+				tax_base = totals._latestValue.base_subtotal;
+
 				tax_base = ''+tax_base;
 				// fin calcular base iva
 				if(!window.checkoutConfig.isCustomerLoggedIn){
@@ -101,9 +100,9 @@ define(
 				var temp = window.checkoutConfig.payment.Epayco.language.split("_");
 				lang = temp[0];
 				var amount = '';
-				var totals = quote.getTotals();
+
 				console.log(totals._latestValue.grand_total);
-				amount = totals._latestValue.grand_total;
+				amount = totals._latestValue.base_grand_total;
 				var data={
 					//Parametros compra (obligatorio)
 					name: items,
