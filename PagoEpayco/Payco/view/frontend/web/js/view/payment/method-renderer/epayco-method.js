@@ -35,7 +35,7 @@ define(
                 console.log(ord);
            
                 var totals = quote.getTotals();
-              //  debugger
+               debugger
                 // var quote = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
                 console.log(quote);
@@ -56,7 +56,12 @@ define(
                 taxes = ''+taxes;
                 var items = '';
                 for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
-                    items += ', '+window.checkoutConfig.quoteItemData[i].product.name;
+                    if(window.checkoutConfig.totalsData.items.length==1){
+                        items=window.checkoutConfig.quoteItemData[i].product.name;
+                    }else{
+                        items += window.checkoutConfig.quoteItemData[i].product.name+',';
+                    }
+                    
                 }
                 //console.log(items);
                // window.checkoutConfig.quoteItemData.foreach(function(item){
