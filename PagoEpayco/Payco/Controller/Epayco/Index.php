@@ -89,11 +89,7 @@
 			$storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
 			$urlRedirect = $this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope);
 			
-			
-				//$this->quote = $this->checkoutSession->getQuote();
-				//$this->quote->getPayment()->setMethod('ePayco');
-				//$this->disabledQuoteAddressValidation($quote);
-				//$this->cartManagement->placeOrder($this->quote->getId());
+
 				if(isset($_GET['ref_payco'])){
 					$this->_curl->get("https://secure.epayco.co/validation/v1/reference/" . $_GET['ref_payco']);
 					$response = $this->_curl->getBody();
@@ -102,13 +98,10 @@
 					if(isset($dataTransaction) && $dataTransaction->success){
 						
 						$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-						//$realOrderId= str_pad($dataTransaction->data->x_id_invoice, 9, "0", STR_PAD_LEFT);
+
 						$orderId = (Integer)$dataTransaction->data->x_id_invoice;
 						$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-						/*$objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
-						$orderDatamodel = $objectManager->get('Magento\Sales\Model\Order')->getCollection()->getLastItem();
-						$orderId   =   $orderDatamodel->getId();
-						$order = $objectManager->create('\Magento\Sales\Model\Order')->load($orderId);*/
+
 						$code = $dataTransaction->data->x_cod_response;
 						if($code == 1){
 							$order->setState("complete")->setStatus("complete");
@@ -121,7 +114,7 @@
 						} else if($code == 12)  {
 							$order->setState("fraud")->setStatus("fraud");
 						}
-						//$order->addStatusToHistory($order->getStatus(), 'ref_payco: '.$_GET['ref_payco']);
+
 						try{
 							$order->save();
 						} catch(\Exception $e){
@@ -132,10 +125,6 @@
 							}
 						}
 						
-						//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
-						//$this->orderRepository->save($order);
-						//$resultRedirect = $this->resultPageFactory->create(ResultFactory::TYPE_REDIRECT);
-						//$resultRedirect->setUrl($urlRedirect);
 						if($urlRedirect != ''){
 							return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
 						} else {
@@ -150,54 +139,68 @@
 							return $this->resultRedirectFactory->create()->setUrl('/');
 						}
 					}
-					
-					//return $this->resultPageFactory->create()->addHandle('confirmation_epayco_index');
-					
+
 					
 				} else {
 					
-					if(isset($_REQUEST['x_response'])){
+					if(isset($_GET['x_ref_payco'])){
+						var_dump($_GET['x_response']);
+						var_dump('ento a la confirmation');
+
+					    $x_id_invoice   = $_GET['x_id_invoice'];
+
 						$p_cust_id_cliente = $this->scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope);
-						$p_key             = $this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope);;
-						$x_response     = $_REQUEST['x_response'];
-						$x_motivo       = $_REQUEST['x_response_reason_text'];
-						$x_id_invoice   = $_REQUEST['x_id_invoice'];
-						$x_currency_code  = $_REQUEST['x_currency_code'];
-						$x_amount         = $_REQUEST['x_amount'];
-						$x_signature      = $_REQUEST['x_signature'];
-						$x_autorizacion = $_REQUEST['x_approval_code'];
-						$x_transaction_id = $_REQUEST['x_transaction_id'];
-						$x_ref_payco      = $_REQUEST['x_ref_payco'];
+						$p_key             = $this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope);
+						$x_ref_payco      = $_GET['x_ref_payco'];
+						$x_transaction_id = $_GET['x_transaction_id'];
+						$x_amount         = $_GET['x_amount'];
+						$x_currency_code  = $_GET['x_currency_code'];
+
+						$x_signature      = $_GET['x_signature'];
+
+						$x_response     = $_GET['x_response'];
+						$x_motivo       = $_GET['x_response_reason_text'];
+						
+						$x_autorizacion = $_GET['x_approval_code'];
+						
+						
+
 						
 						$signature =  $signature = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
 						if($x_signature == $signature){
-							$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-//							$realOrderId= str_pad($_REQUEST['x_id_invoice'], 9, "0", STR_PAD_LEFT);
-							$orderId = $x_id_invoice;
-							$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-							
-							$x_response     = $_REQUEST['x_response'];
-							$x_motivo       = $_REQUEST['x_response_reason_text'];
-							$x_id_invoice   = $_REQUEST['x_id_invoice'];
-							$x_autorizacion = $_REQUEST['x_approval_code'];
-							$code = $x_response;
-							if($code == 1){
-								$order->setState("complete")->setStatus("complete");
-							} else if($code == 3){
-								$order->setState("pending")->setStatus("pending");
-							} else if($code == 2 || $code == 6 || $code == 9 || $code == 10){
-								$order->setState("canceled")->setStatus("canceled");
-							} else if($code == 4){
-								$order->setState("pending")->setStatus("pending");
-							} else if($code == 12)  {
-								$order->setState("fraud")->setStatus("fraud");
-							}
+
+								$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+						$orderId = (Integer)$x_id_invoice;
+						$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+						
+						$x_cod_transaction_state = $_GET['x_cod_transaction_state'];
+
+						$code = (Integer)$x_cod_transaction_state;
+						if($code == 1){
+							$order->setState("complete")->setStatus("complete");
+						} else if($code == 3){
+							$order->setState("pending")->setStatus("pending");
+						} else if($code == 2 || $code == 6 || $code == 9 || $code == 10){
+							$order->setState("canceled")->setStatus("canceled");
+						} else if($code == 4){
+							$order->setState("pending")->setStatus("pending");
+						} else if($code == 12)  {
+							$order->setState("fraud")->setStatus("fraud");
+						}
+
+						try{
 							$order->save();
-							//$order->getPayment()->setAdditionalInformation("ref_payco",$_GET['ref_payco']);
-							//$order->save();
+						} catch(\Exception $e){
+							return $result->setData('Error No se creo la orden');
+						}
+
+
+							$order->save();
 							return true;
 						}
 						else{
+							var_dump('no entro a la signature');
 							return true;
 						}
 						

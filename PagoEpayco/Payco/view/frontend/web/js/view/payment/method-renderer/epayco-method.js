@@ -30,15 +30,20 @@ define(
             },**/
             renderCheckout: function() {      
                 //console.log(window);
-                console.log('editado por Juan y Richie');
+               // console.log('editado por Juan y Richie');
                 var ord = this.placeOrder(quote);
-                console.log(ord);
+               // console.log(ord);
            
                 var totals = quote.getTotals();
-              //  debugger
+                var countryBllg = quote.shippingAddress();
+            //   debugger
+               var  countrys = countryBllg.countryId;
+               var street=countryBllg.street[0];
                 // var quote = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
-                console.log(quote);
+                //console.log(quote);
+               var   invoices= this.getOrderId();
+               var getOrderData = this.getOrderData();
                 if(window.checkoutConfig.payment.Epayco.payco_test == "1"){
                     window.checkoutConfig.payment.Epayco.payco_test= "true";
                     var test2 = true;
@@ -56,14 +61,20 @@ define(
                 taxes = ''+taxes;
                 var items = '';
                 for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
-                    items += ', '+window.checkoutConfig.quoteItemData[i].product.name;
+                    if(window.checkoutConfig.totalsData.items.length==1){
+                        items=window.checkoutConfig.quoteItemData[i].product.name;
+                    }else{
+                        items += window.checkoutConfig.quoteItemData[i].product.name+',';
+                    }
+                    
                 }
                 //console.log(items);
                // window.checkoutConfig.quoteItemData.foreach(function(item){
                //     items += ', '+item.product.name;
                // });
+
                 var orderFromBack = quote.getQuoteId();
-                console.log(orderFromBack);
+              //  console.log(orderFromBack);
                 var docType='';
                 var mobile = '';
                 var doc= '';
@@ -81,18 +92,24 @@ define(
                 } else {
                     var defaultConf = parseInt(window.checkoutConfig.customerData.default_billing);
                     var  name_billing = window.checkoutConfig.customerData.firstname + ' '+ window.checkoutConfig.customerData.lastname;
-                    mobile = window.checkoutConfig.customerData.telephone;
-                    var address_billing = window.checkoutConfig.customerData.addresses[0].inline;
-                    country = window.checkoutConfig.customerData.addresses[0].country_id;
+                   // mobile = window.checkoutConfig.customerData.telephone;
+                   mobile = countryBllg.telephone;
+                    var address_billing_length = window.checkoutConfig.customerData.addresses[0];
+
+                      /*  var address_billing = window.checkoutConfig.customerData.addresses[0].inline;
+                        country = window.checkoutConfig.customerData.addresses[0].country_id;*/
+                    var address_billing = countryBllg.street[0];
+                    country = countryBllg.countryId;
                 }
                 var lang = '';
                 var temp = window.checkoutConfig.payment.Epayco.language.split("_");
                 lang = temp[0];
                 var amount = '';
                 
-                console.log(totals._latestValue.grand_total);
+                //console.log(totals._latestValue.grand_total);
                 console.log(url.build("confirmation/epayco/index"));
                 amount = totals._latestValue.base_grand_total;
+
                 var data={
                     //Parametros compra (obligatorio)
                     name: items,
@@ -130,6 +147,9 @@ define(
             },
             getOrderId: function(){
                 return window.checkoutConfig.payment.Epayco.getOrderId;
+            },
+            getOrderData: function(){
+                return window.checkoutConfig.payment.Epayco.getOrderData;
             },
     
             /**placeOrder: function () {
