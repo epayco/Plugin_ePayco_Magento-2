@@ -1,7 +1,12 @@
-# Plugin Integración ePayco para Magento 2 (2.2)
+# Plugin Integración ePayco para Magento 2 (2.x)
 
 Este plugin permite integrar ePayco como medio de pago para sus tiendas en Magento 2.
 
+**Si usted tiene alguna pregunta o problema, no dude en ponerse en contacto con nuestro soporte técnico: desarrollo@payco.co.**
+
+## Versiones
+* [ePayco plugin Magento v2.2.x](https://github.com/epayco/magento2.x/releases/tag/v2.2).
+* [ePayco plugin Magento v2.3.x](https://github.com/epayco/magento2.x/releases/tag/v2.3).
 ## Iniciando
 
 En estas instrucciones usted encontrará las indicaciones para instalar el módulo y activarlo en su instalación de Magento 2.
