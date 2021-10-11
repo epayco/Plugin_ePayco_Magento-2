@@ -1,7 +1,7 @@
 <?php
-	
+
 	namespace PagoEpayco\Payco\Model;
-	
+
 	use Magento\Checkout\Model\ConfigProviderInterface;
 	use Magento\ImportExport\Test\Unit\Model\Import\Entity\EavAbstractTest;
 	use PagoEpayco\Payco\Controller\PaymentController;
@@ -20,11 +20,11 @@
 		    $this->_scopeConfig = $scopeConfig;
 		    $this->epayco = $epayco;
 		    $this->store = $store;
-			
+
 		}
-		
-		
-		
+
+
+
 		public function getConfig() {
 			$storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
 			$config = [
@@ -43,30 +43,34 @@
 						 *
 						 */
 						'payco_title'=> $this->_scopeConfig->getValue('payment/epayco/payco_title',$storeScope),
-						'payco_description'=> $this->_scopeConfig->getValue('payment/epayco/payco_description',$storeScope),
 						'payco_merchant'=> $this->_scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope),
 						'payco_key'=> $this->_scopeConfig->getValue('payment/epayco/payco_key',$storeScope),
 						'payco_public_key'=> $this->_scopeConfig->getValue('payment/epayco/payco_public_key',$storeScope),
 						'payco_callback'=> $this->_scopeConfig->getValue('payment/epayco/payco_callback',$storeScope),
-						
+
 						'payco_test'=> $this->_scopeConfig->getValue('payment/epayco/payco_test',$storeScope),
 						'vertical_cs'=> $this->_scopeConfig->getValue('payment/epayco/vertical_cs',$storeScope),
 						'responseAction'=>$this->epayco->responseAction(),
 						'getOrderId'=>$this->epayco->getOrderId(),
+                        'getQuoteData'=>$this->epayco->getQuoteData(),
+                        'getStoreData'=>$this->epayco->getStoreData(),
+                        'getOrderIncrementId'=>$this->epayco->getOrderIncrementId(),
+                        'getQuoteIncrementId'=>$this->epayco->getQuoteIncrementId(),
+                        'getQuoteIdData'=>$this->epayco->getQuoteIdData(),
+                        'text'=>$this->epayco->text(),
 						'language'=>$this->getLanguage()
-						
 					]
 				]
 			];
-			
+
 			return $config;
 		}
-		
-		
+
+
 		public function getLanguage(){
 			$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 			$store = $objectManager->get('Magento\Framework\Locale\Resolver');
-			
+
 			return $store->getLocale();
 		}
 	}

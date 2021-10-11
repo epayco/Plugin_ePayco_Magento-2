@@ -21,10 +21,6 @@
                     <label>Título</label>
                     <comment>Corresponde al titulo que el usuario ve durante el checkout.</comment>
                 </field>
-                <field id="payco_description" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Descripción</label>
-                    <comment>Corresponde a la descripción que verá el usuaro durante el checkout.</comment>
-                </field>
                 <field id="payco_merchant" translate="label" type="text" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>P_CUST_ID_CLIENTE</label>
                     <comment>ID de cliente que lo identifica en ePayco. Lo puede encontrar en su panel de clientes en la opción configuración.</comment>

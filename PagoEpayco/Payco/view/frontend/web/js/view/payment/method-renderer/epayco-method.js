@@ -6,13 +6,18 @@
 /*global define*/
 define(
     [
+        "jquery",
         'Magento_Checkout/js/view/payment/default',
         'mage/url',
         'Magento_Checkout/js/model/quote',
         'Magento_Checkout/js/checkout-data',
-        'https://checkout.epayco.co/checkout.js' 
+        'Magento_Checkout/js/model/authentication-messages',
+        'Magento_Checkout/js/model/url-builder',
+        'Magento_Customer/js/model/customer',
+        'Magento_Checkout/js/model/place-order',
+        'https://checkout.epayco.co/checkout.js?version=1629309251348'
     ],
-    function (Component,url,quote,checkoutData) {
+    function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer, placeOrderService) {
         'use strict';
         return Component.extend({
             defaults: {
@@ -20,179 +25,200 @@ define(
                 template: 'PagoEpayco_Payco/payment/epayco'
             },
             redirectAfterPlaceOrder: false,
-           /** next:function(){
-                this.placeOrder();
-                //console.log(stepNavigator);
-                //this.navigateToNextStep();        
-            },
-            navigateToNextStep: function () {
-                stepNavigator.next();
-            },**/
-            renderCheckout: function() {      
-                //console.log(window);
-               // console.log('editado por Juan y Richie');
-                var ord = this.placeOrder(quote);
-               // console.log(ord);
-           
-                var totals = quote.getTotals();
+            renderCheckout: function() {
+                
                 var countryBllg = quote.shippingAddress();
-            //   debugger
-               var  countrys = countryBllg.countryId;
-               var street=countryBllg.street[0];
-                // var quote = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
-                //console.log(quote);
-               var   invoices= this.getOrderId();
-               var getOrderData = this.getOrderData();
-                if(window.checkoutConfig.payment.Epayco.payco_test == "1"){
-                    window.checkoutConfig.payment.Epayco.payco_test= "true";
-                    var test2 = true;
-                } else {
-                    window.checkoutConfig.payment.Epayco.payco_test = "false";
-                    var test2 = false;
-                }        
-                var handler = ePayco.checkout.configure({
-                    key: window.checkoutConfig.payment.Epayco.payco_public_key,
-                    /*test: window.checkoutConfig.payment.Epayco.payco_test*/
-                    test:test2
-                })        
-                var taxes = 0;
-                taxes = totals._latestValue.base_tax_amount
-                taxes = ''+taxes;
-                var items = '';
-                for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
-                    if(window.checkoutConfig.totalsData.items.length==1){
-                        items=window.checkoutConfig.quoteItemData[i].product.name;
-                    }else{
-                        items += window.checkoutConfig.quoteItemData[i].product.name+',';
-                    }
-                    
-                }
-                //console.log(items);
-               // window.checkoutConfig.quoteItemData.foreach(function(item){
-               //     items += ', '+item.product.name;
-               // });
-
-                var orderFromBack = quote.getQuoteId();
-              //  console.log(orderFromBack);
-                var docType='';
-                var mobile = '';
-                var doc= '';
-                var country = '';
-                //calcular base iva
-                var tax_base = 0;            
-                tax_base = totals._latestValue.base_subtotal_with_discount;                
-                tax_base = ''+tax_base;
-                // fin calcular base iva
-                if(!window.checkoutConfig.isCustomerLoggedIn){
-            
-                    var name_billing =  customerData.firstname + ' ' + customerData.lastname;
-                    var address_billing =  customerData.street[0]+ ' ' + customerData.street[1];
-                    country = customerData.country_id;
-                } else {
-                    var defaultConf = parseInt(window.checkoutConfig.customerData.default_billing);
-                    var  name_billing = window.checkoutConfig.customerData.firstname + ' '+ window.checkoutConfig.customerData.lastname;
-                   // mobile = window.checkoutConfig.customerData.telephone;
-                   mobile = countryBllg.telephone;
-                    var address_billing_length = window.checkoutConfig.customerData.addresses[0];
-
-                      /*  var address_billing = window.checkoutConfig.customerData.addresses[0].inline;
-                        country = window.checkoutConfig.customerData.addresses[0].country_id;*/
-                    var address_billing = countryBllg.street[0];
-                    country = countryBllg.countryId;
-                }
-                var lang = '';
-                var temp = window.checkoutConfig.payment.Epayco.language.split("_");
-                lang = temp[0];
-                var amount = '';
-                
-                //console.log(totals._latestValue.grand_total);
-                console.log(url.build("confirmation/epayco/index"));
-                amount = totals._latestValue.base_grand_total;
-
-                var data={
-                    //Parametros compra (obligatorio)
-                    name: items,
-                    description: items,
-                    invoice: this.getOrderId(),
-                    currency: window.checkoutConfig.quoteData.store_currency_code,
-                    amount: amount,
-                    tax_base: tax_base.replace('.',','),
-                    tax: taxes.replace('.',','),
-                    country: country,
-                    lang: lang,
-            
-                    //Onpage='false' - Standard='true'
-                    external: window.checkoutConfig.payment.Epayco.vertical_cs,
-            
-            
-                    //Atributos opcionales
-                    extra1: 'extra1',
-                    extra2: 'extra2',
-                    extra3: 'extra3',
-                    confirmation:url.build("confirmation/epayco/index"),
-                    response: url.build("confirmation/epayco/index"),
-            
-                    //Atributos cliente
-                    name_billing: name_billing,
-                    address_billing: address_billing,
-                    type_doc_billing: docType,
-                    mobilephone_billing: mobile,
-                    number_doc_billing: doc
-            
+                var paymentData = {
+                    method: 'epayco',
+                    additionalData: null,
+                    po_number: null
                 };
-                console.log("THIS IS THE DATA=>",data);
-                handler.open(data);
-                
+                var serviceUrl, payload;
+                payload = {
+                    cartId: quote.getQuoteId(),
+                    billingAddress: quote.billingAddress(),
+                    paymentMethod: paymentData
+                };
+
+                if (customer.isLoggedIn()) {
+                    serviceUrl = urlBuilder.createUrl('/carts/mine/payment-information', {});
+                } else {
+                    serviceUrl = urlBuilder.createUrl('/guest-carts/:quoteId/payment-information', {
+                        quoteId: quote.getQuoteId()
+                    });
+                    payload.email = quote.guestEmail;
+                }
+                 placeOrderService(serviceUrl, payload, messageContainer);
+                var orderId = this.getOrderId();
+                var getQuoteIncrement = this.getQuoteIncrementId();
+                var totals = quote.getTotals();
+                var quoteIdData = this.getQuoteIdData();
+                var invoice;
+                var settings = {
+                    "url": url.build("response/payment/index"),
+                    "method": "POST",
+                    "timeout": 120,
+                    "async":false,
+                    "headers": {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    "data": {
+                        "order_id": quoteIdData
+                    }
+                }
+                $.ajax({
+                    url: url.build("response/payment/index"),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    method: 'POST',
+                    async: false,
+                    data:  {
+                        "order_id": quoteIdData
+                    },
+                    success: function(data){
+                        
+                        console.log('succes');
+                       if(data.increment_id){
+                            invoice = data.increment_id;
+                        }else{
+                              $.ajax(settings).done(function (response) {
+
+                                  if( response.increment_id){
+                                      invoice = response.increment_id;
+                                  }
+                            });
+                        }
+                        
+                       if(invoice){
+                           if(window.checkoutConfig.payment.Epayco.payco_test == "1"){
+                               window.checkoutConfig.payment.Epayco.payco_test= "true";
+                               var test2 = true;
+                           } else {
+                               window.checkoutConfig.payment.Epayco.payco_test = "false";
+                               var test2 = false;
+                           }
+                           var handler = ePayco.checkout.configure({
+                               key: window.checkoutConfig.payment.Epayco.payco_public_key,
+                               test:test2
+                           })
+                           var taxes = 0;
+                           taxes = totals._latestValue.base_tax_amount
+                           taxes = ''+taxes;
+                           var items = '';
+                           for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
+                               if(window.checkoutConfig.totalsData.items.length==1){
+                                   items=window.checkoutConfig.quoteItemData[i].product.name;
+                               }else{
+                                   items += window.checkoutConfig.quoteItemData[i].product.name+',';
+                               }
+
+                           }
+                           var docType='';
+                           var mobile = '';
+                           var doc= '';
+                           var country = '';
+                           //calcular base iva
+                           var tax_base = 0;
+                           tax_base = totals._latestValue.base_subtotal_with_discount;
+                           tax_base = ''+tax_base;
+                           // fin calcular base iva
+                           if(!window.checkoutConfig.isCustomerLoggedIn){
+                               if(customerData){
+                                   var name_billing =  customerData.firstname + ' ' + customerData.lastname;
+                                   var address_billing =  customerData.street[0]+ ' ' + customerData.street[1];
+                                   country = customerData.country_id;
+                               }else{
+                                   country = 'CO';
+                               }
+                           } else {
+                               var  name_billing = window.checkoutConfig.customerData.firstname + ' '+ window.checkoutConfig.customerData.lastname;
+                               mobile = countryBllg.telephone;
+                               var address_billing = countryBllg.street[0];
+                               country = countryBllg.countryId;
+                           }
+                           var lang = '';
+                           var temp = window.checkoutConfig.payment.Epayco.language.split("_");
+                           lang = temp[0];
+                           var amount = '';
+                           amount = totals._latestValue.base_grand_total;
+
+                           var data={
+                               //Parametros compra (obligatorio)
+                               name: items,
+                               description: items,
+                               invoice: invoice,
+                               currency: window.checkoutConfig.quoteData.store_currency_code,
+                               amount: amount,
+                               tax_base: tax_base.replace('.',','),
+                               tax: taxes.replace('.',','),
+                               country: country,
+                               lang: lang,
+
+                               //Onpage='false' - Standard='true'
+                               external: window.checkoutConfig.payment.Epayco.vertical_cs,
+
+
+                               //Atributos opcionales
+                               extra1: orderId,
+                               extra2: getQuoteIncrement,
+                               extra3: invoice,
+                               extra4: quoteIdData,
+                               confirmation:url.build("confirmation/epayco/index"),
+                               response: url.build("confirmation/epayco/index"),
+
+                               //Atributos cliente
+                               name_billing: name_billing,
+                               address_billing: address_billing,
+                               type_doc_billing: docType,
+                               mobilephone_billing: mobile,
+                               number_doc_billing: doc
+
+                           };
+                            console.log(data)
+                            handler.open(data);
+                       }
+                    },
+                    error :function(error){
+
+                        console.log('error: '+error);
+                    }
+                });
+
             },
             getOrderId: function(){
                 return window.checkoutConfig.payment.Epayco.getOrderId;
             },
-            getOrderData: function(){
-                return window.checkoutConfig.payment.Epayco.getOrderData;
+            getQuoteData: function(){
+                return window.checkoutConfig.payment.Epayco.getQuoteData;
             },
-    
-            /**placeOrder: function () {
-                var self = this;
-        
-                
-                    $.when(setPaymentInformationAction(this.messageContainer, {
-                        'method': self.getCode()
-                    })).done(function () {
-                        self.placeOrderHandler().fail(function () {
-                            fullScreenLoader.stopLoader();
-                        });
-                    }).fail(function () {
-                        fullScreenLoader.stopLoader();
-                        self.isPlaceOrderActionAllowed(true);
-                    });
+            getStoreData: function(){
+                return window.checkoutConfig.payment.Epayco.getStoreData;
             },
-            
-            
-            test : function(data){
-                console.log(data);
-                console.log(window.checkoutConfig.payment);
-                
+            getOrderIncrementId: function(){
+                return window.checkoutConfig.payment.Epayco.getOrderIncrementId;
             },
-            /** Returns send check to info */
+            getQuoteIncrementId: function(){
+                return window.checkoutConfig.payment.Epayco.getQuoteIncrementId;
+            },
+            getQuoteIdData: function(){
+                return window.checkoutConfig.payment.Epayco.getQuoteIdData;
+            },
+            getdisplayTitle: function () {
+                return window.checkoutConfig.payment.Epayco.payco_title;
+            },
+            text: function(){
+                return window.checkoutConfig.payment.Epayco.text;
+            },
             getMailingAddress: function() {
-
- 
-
                 return window.checkoutConfig.payment.checkmo.mailingAddress;
             },
-
- 
-
             responseAction: function(){
                 return window.checkoutConfig.payment.Epayco.responseAction;
             },
-            
-            
-
- 
-
-           
         });
     }
 );

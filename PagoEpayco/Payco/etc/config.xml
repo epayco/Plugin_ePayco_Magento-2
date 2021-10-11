@@ -11,8 +11,6 @@
             <epayco>
                 <active>1</active>
                 <title>Epayco</title>
-                <titulo>Titulo</titulo>
-                <descripcion>Descripción</descripcion>
                 <p_cust_id_cliente>P_CUST_ID_CLIENTE</p_cust_id_cliente>
                 <p_key>P_KEY</p_key>
                 <public_key>Public_KEY</public_key>

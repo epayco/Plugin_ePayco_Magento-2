@@ -4,31 +4,16 @@
                name="payment[method]"
                class="radio"
                data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()"/>
-        <label data-bind="attr: {'for': getCode()}" class="label"><span data-bind="text: getTitle()"></span></label>
+        <label data-bind="attr: {'for': getCode()}" class="label"><span data-bind="text: getdisplayTitle()"></span></label>
     </div>
     <div class="payment-method-content">
         <div class="actions-toolbar">
             <div class="primary">
-                <!-- <form>
-				 <script
-				 src="https://checkout.epayco.co/checkout.js"
-				 class="epayco-button"
-				 data-epayco-key="491d6a0b6e992cf924edd8d3d088aff1"
-				 data-epayco-amount="50000"
-				 data-epayco-name="Vestido Mujer Primavera"
-				 data-epayco-description="Vestido Mujer Primavera"
-				 data-epayco-currency="cop"
-				 data-epayco-country="co"
-				 data-epayco-test="true"
-				 data-epayco-external="false"
-				 data-epayco-response="https://ejemplo.com/respuesta.html"
-				 data-epayco-confirmation="https://ejemplo.com/confirmacion">
-			   </script>
-			 </form> -->
-                <input type="image" id="imagen" src="https://369969691f476073508a-60bf0867add971908d4f26a64519c2aa.ssl.cf5.rackcdn.com/btns/btn4.png" data-bind="
+
+                <!--<input type="image" id="imagen" src="https://369969691f476073508a-60bf0867add971908d4f26a64519c2aa.ssl.cf5.rackcdn.com/btns/btn4.png" data-bind="
     click: renderCheckout
-   "/>
-               <!--<button class="action primary checkout"
+   "/> -->
+               <button class="action primary checkout"
                         type="submit"
                         data-bind="
     click: renderCheckout,
@@ -38,13 +23,13 @@
     "
                         disabled>
                     <span data-bind="i18n: 'Place Order'"></span>
-                </button>-->
+                </button>
                 <!-- <button class="action primary checkout"
 				 type="button" onclick="renderCheckout()">
 				 <span data-bind="i18n: 'Place Order'"></span>
-			   </button> -->
+			   </button>
             </div>
         </div>
     </div>
-    
+
 </div>
