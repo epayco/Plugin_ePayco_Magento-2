@@ -24,7 +24,6 @@ use Magento\Sales\Model\Order;
 
 class Index extends \Magento\Framework\App\Action\Action
 {
-
     protected $resultPageFactory;
     protected $resultJsonFactory;
     protected $checkoutSession;
@@ -53,10 +52,6 @@ class Index extends \Magento\Framework\App\Action\Action
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \PagoEpayco\Payco\Controller\PaymentController $payment_controller,
         \Magento\Sales\Api\OrderRepositoryInterface $orderRepository
-
-
-
-
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->resultJsonFactory = $resultJsonFactory;
@@ -79,15 +74,14 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-
         $result = $this->resultJsonFactory->create();
-        $data = $_REQUEST;
-       
-        if(isset($_REQUEST['order_id'])){
+        $orderId = $_REQUEST['order_id'];
+
+        if(isset($orderId)){
             $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
             $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
             $connection = $resource->getConnection();
-            $orderId_= $_REQUEST['order_id'];
+            $orderId_= $orderId;
                 $sql = "SELECT * FROM sales_order WHERE quote_id = '$orderId_'";
                 $result_ = $connection->fetchAll($sql);
                 if($result_ != null){

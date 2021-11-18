@@ -25,14 +25,12 @@ define(
                 template: 'PagoEpayco_Payco/payment/epayco'
             },
             redirectAfterPlaceOrder: false,
-            renderCheckout: function() {
-                
+            renderCheckout: async function() {
+
                 var countryBllg = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
                 var paymentData = {
-                    method: 'epayco',
-                    additionalData: null,
-                    po_number: null
+                    method: 'epayco'
                 };
                 var serviceUrl, payload;
                 payload = {
@@ -68,7 +66,7 @@ define(
                         "order_id": quoteIdData
                     }
                 }
-                $.ajax({
+                 await $.ajax({
                     url: url.build("response/payment/index"),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -80,29 +78,27 @@ define(
                         "order_id": quoteIdData
                     },
                     success: function(data){
-                        
-                        console.log('succes');
-                       if(data.increment_id){
-                            invoice = data.increment_id;
-                        }else{
-                              $.ajax(settings).done(function (response) {
-
-                                  if( response.increment_id){
-                                      invoice = response.increment_id;
-                                  }
+                        console.log('processing...');
+                        if(data == "warning" || data.length == 0 || data == "error" ) {
+                            $.ajax(settings).done(function (response) {
+                                if( response.increment_id){
+                                    invoice = response.increment_id;
+                                }
                             });
+                        }else{
+                            invoice = data.increment_id;
                         }
-                        
+
                        if(invoice){
-                           if(window.checkoutConfig.payment.Epayco.payco_test == "1"){
-                               window.checkoutConfig.payment.Epayco.payco_test= "true";
+                           if(window.checkoutConfig.payment.epayco.payco_test == "1"){
+                               window.checkoutConfig.payment.epayco.payco_test= "true";
                                var test2 = true;
                            } else {
-                               window.checkoutConfig.payment.Epayco.payco_test = "false";
+                               window.checkoutConfig.payment.epayco.payco_test = "false";
                                var test2 = false;
                            }
                            var handler = ePayco.checkout.configure({
-                               key: window.checkoutConfig.payment.Epayco.payco_public_key,
+                               key: window.checkoutConfig.payment.epayco.payco_public_key,
                                test:test2
                            })
                            var taxes = 0;
@@ -141,7 +137,7 @@ define(
                                country = countryBllg.countryId;
                            }
                            var lang = '';
-                           var temp = window.checkoutConfig.payment.Epayco.language.split("_");
+                           var temp = window.checkoutConfig.payment.epayco.language.split("_");
                            lang = temp[0];
                            var amount = '';
                            amount = totals._latestValue.base_grand_total;
@@ -157,67 +153,58 @@ define(
                                tax: taxes.replace('.',','),
                                country: country,
                                lang: lang,
-
                                //Onpage='false' - Standard='true'
-                               external: window.checkoutConfig.payment.Epayco.vertical_cs,
-
-
+                               external: window.checkoutConfig.payment.epayco.vertical_cs,
                                //Atributos opcionales
                                extra1: orderId,
-                               extra2: getQuoteIncrement,
-                               extra3: invoice,
-                               extra4: quoteIdData,
+                               extra2: invoice,
                                confirmation:url.build("confirmation/epayco/index"),
                                response: url.build("confirmation/epayco/index"),
-
                                //Atributos cliente
                                name_billing: name_billing,
                                address_billing: address_billing,
                                type_doc_billing: docType,
                                mobilephone_billing: mobile,
                                number_doc_billing: doc
-
                            };
-                            console.log(data)
                             handler.open(data);
                        }
                     },
                     error :function(error){
-
                         console.log('error: '+error);
                     }
                 });
 
             },
             getOrderId: function(){
-                return window.checkoutConfig.payment.Epayco.getOrderId;
+                return window.checkoutConfig.payment.epayco.getOrderId;
             },
             getQuoteData: function(){
-                return window.checkoutConfig.payment.Epayco.getQuoteData;
+                return window.checkoutConfig.payment.epayco.getQuoteData;
             },
             getStoreData: function(){
-                return window.checkoutConfig.payment.Epayco.getStoreData;
+                return window.checkoutConfig.payment.epayco.getStoreData;
             },
             getOrderIncrementId: function(){
-                return window.checkoutConfig.payment.Epayco.getOrderIncrementId;
+                return window.checkoutConfig.payment.epayco.getOrderIncrementId;
             },
             getQuoteIncrementId: function(){
-                return window.checkoutConfig.payment.Epayco.getQuoteIncrementId;
+                return window.checkoutConfig.payment.epayco.getQuoteIncrementId;
             },
             getQuoteIdData: function(){
-                return window.checkoutConfig.payment.Epayco.getQuoteIdData;
+                return window.checkoutConfig.payment.epayco.getQuoteIdData;
             },
             getdisplayTitle: function () {
-                return window.checkoutConfig.payment.Epayco.payco_title;
+                return window.checkoutConfig.payment.epayco.payco_title;
             },
             text: function(){
-                return window.checkoutConfig.payment.Epayco.text;
+                return window.checkoutConfig.payment.epayco.text;
             },
             getMailingAddress: function() {
                 return window.checkoutConfig.payment.checkmo.mailingAddress;
             },
             responseAction: function(){
-                return window.checkoutConfig.payment.Epayco.responseAction;
+                return window.checkoutConfig.payment.epayco.responseAction;
             },
         });
     }

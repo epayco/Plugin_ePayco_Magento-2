@@ -5,15 +5,13 @@
  * See COPYING.txt for license details.
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../Config/etc/system_file.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <section id="payment">
             <group id="epayco" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
-
-
-               <label>ePayco v2.0.0</label>
-                <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Habilitar/Deshabilitar</label>
+               <label>ePayco</label>
+                <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                    <label>Habilitar</label>
                     <comment>Habilitar o deshabilitar ePayco Checkout</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
@@ -47,11 +45,15 @@
                     <comment>(Onpage Checkout, el usuario a pagar permanece en el sitio) o (Standart Checkout, el usuario a pagar se redirige a la puerta de enlace de ePayco)</comment>
                     <source_model>PagoEpayco\Payco\Model\Config\Source\Helper\Vertical</source_model>
                 </field>
-                <field id="payco_sort_order" translate="label" type="text" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="0">
-                    <label>Orden</label>
+                <field id="order_status" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                    <label>New Order Status</label>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status\NewStatus</source_model>
+                </field>
+                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Sort Order</label>
+                    <frontend_class>validate-number</frontend_class>
                 </field>
             </group>
-            <!-- payment-group -->
         </section>
     </system>
 </config>

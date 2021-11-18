@@ -90,11 +90,15 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
      */
     public function execute()
     {
-        $server_name = str_replace('index.php','checkout/onepage/success/',$_SERVER['SCRIPT_NAME']);
-        $new_ulr = $_SERVER['REQUEST_SCHEME']."://".$_SERVER['SERVER_NAME'].$server_name;
+        $url = $_SERVER['REQUEST_SCHEME']."://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
+        $server_name = str_replace('/confirmation/epayco/index','/checkout/onepage/success/',$url);
+        $new_url = $server_name;
         $result = $this->resultJsonFactory->create();
         $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-        $urlRedirect = $this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope);
+        $urlRedirect = trim($this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope));
+        if($urlRedirect != ''){
+            $urlRedirect = $urlRedirect."?ref_payco=".$_GET['ref_payco'];
+        }
         $pendingOrderState = "pending";
 
         if(isset($_GET['ref_payco'])){
@@ -106,23 +110,25 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
 
             if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
                 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                $quoteReservedOrderId = $dataTransaction->data->x_id_invoice;
                 $orderId = (Integer)$dataTransaction->data->x_extra1;
                 $code = $dataTransaction->data->x_cod_response;
-
                 $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+
                 if($code == 1){
                     $order->setState(Order::STATE_PROCESSING, true);
                     $order->setStatus(Order::STATE_PROCESSING, true);
                 } else if($code == 3){
                     $order->setState($pendingOrderState, true);
                     $order->setStatus($pendingOrderState, true);
-                } else if($code == 2 || $code == 6 || $code == 9 || $code == 10 || $code == 11){
+                } else if($code == 2 ||
+                    $code == 4 ||
+                    $code == 6 ||
+                    $code == 9 ||
+                    $code == 10 ||
+                    $code == 11
+                ){
                     $order->setState(Order::STATE_CANCELED, true);
                     $order->setStatus(Order::STATE_CANCELED, true);
-                } else if($code == 4){
-                    $order->setState($pendingOrderState, true);
-                    $order->setStatus($pendingOrderState, true);
                 } else if($code == 12)  {
                     $order->setState(Order::STATUS_FRAUD, true);
                     $order->setStatus(Order::STATUS_FRAUD, true);
@@ -134,20 +140,20 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                     if($urlRedirect != ''){
                         return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
                     } else {
-                        return $this->resultRedirectFactory->create()->setUrl($new_ulr);
+                        return $this->resultRedirectFactory->create()->setUrl($new_url);
                     }
                 }
 
                 if($urlRedirect != ''){
                     return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
                 } else {
-                    return $this->resultRedirectFactory->create()->setUrl($new_ulr);
+                    return $this->resultRedirectFactory->create()->setUrl($new_url);
                 }
             } else {
                 if($urlRedirect != ''){
                     return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
                 } else {
-                    return $this->resultRedirectFactory->create()->setUrl($new_ulr);
+                    return $this->resultRedirectFactory->create()->setUrl($new_url);
                 }
             }
         } else if(isset($_REQUEST['x_ref_payco'])){
@@ -157,8 +163,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $x_extra1 = trim($_REQUEST['x_extra1']);
             $x_currency_code = trim($_REQUEST['x_currency_code']);
             $x_transaction_id = trim($_REQUEST['x_transaction_id']);
-            $p_cust_id_cliente = $this->scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope);
-            $p_key = $this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope);
+            $p_cust_id_cliente = trim($this->scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope));
+            $p_key = trim($this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
             $signature  = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
 
             if($x_signature == $signature){
@@ -169,18 +175,20 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 $order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
 
                 if($code == 1){
-
                     $order->setState(Order::STATE_PROCESSING, true);
                     $order->setStatus(Order::STATE_PROCESSING, true);
                 } else if($code == 3){
                     $order->setState($pendingOrderState, true);
                     $order->setStatus($pendingOrderState, true);
-                } else if($code == 2 || $code == 6 || $code == 9 || $code == 10){
+                } else if($code == 2 ||
+                        $code == 4 ||
+                        $code == 6 ||
+                        $code == 9 ||
+                        $code == 10 ||
+                        $code == 11
+                ){
                     $order->setState(Order::STATE_CANCELED, true);
                     $order->setStatus(Order::STATE_CANCELED, true);
-                } else if($code == 4){
-                    $order->setState($pendingOrderState, true);
-                    $order->setStatus($pendingOrderState, true);
                 } else if($code == 12)  {
                     $order->setState(Order::STATUS_FRAUD, true);
                     $order->setStatus(Order::STATUS_FRAUD, true);
@@ -192,11 +200,10 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                     return $result->setData('Error No se creo la orden');
                 }
 
-                return $result->setData('confirmed order');;
+                return $result->setData('confirmed order');
             }
             else{
-                var_dump('no entro a la signature');
-                return $result;
+                return $result->setData('no entro a la signature');
             }
         } else {
             return $result->setData('No se creo la orden');

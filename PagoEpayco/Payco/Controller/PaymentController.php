@@ -31,11 +31,7 @@ public function __construct(
 	parent::__construct($context);
 }
 
-
-
 	public function execute(){}
-
-
 
 	public function responseAction($control = false)
 	{
@@ -88,20 +84,7 @@ public function __construct(
 
 
 		}
-		//echo '<pre>'.$this->_request.'</pre>';
-		//$this->_redirect('checkout/onepage/success');
-		/*$x_respuesta=$_POST['x_response'];
-        $x_cod_response=$_POST['x_cod_response'];
-        $x_transaction_id=$_POST['x_transaction_id'];
-        $x_approval_code=1;//$_POST['x_approval_code'];
-
-		if($x_respuesta=='Aceptada' && $x_cod_response=='1' &&  $x_approval_code!='000000'){
-				$this->_redirect('checkout/onepage/success');
-		} else {
-				$this->_redirect('checkout/onepage/failure');
-		}*/
-
-	}
+    }
 
 	public function confirmAction()
 	{
@@ -189,32 +172,11 @@ public function __construct(
 	public function getOrderId(){
 		$carrito = $this->checkoutSession->getQuote()->getId();
 		return $carrito;
-
 	}
 
         public function getQuoteIdData(){
             $order = $this->checkoutSession->getQuoteId();
             return $order;
         }
-
-        public function text(){
-            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-            $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-            $connection = $resource->getConnection();
-            $orderId_= $this->getQuoteIdData();
-            if($orderId_){
-                $sql = "SELECT * FROM sales_order WHERE quote_id = '$orderId_'";
-                $result = $connection->fetchAll($sql);
-                if($result != null){
-                    return $result[0];
-                }else{
-                    return 1;
-                }
-
-            }else{
-                return 0;
-            }
-        }
-
 
 }

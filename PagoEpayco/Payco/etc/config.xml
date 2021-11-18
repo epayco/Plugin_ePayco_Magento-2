@@ -5,11 +5,13 @@
  * See COPYING.txt for license details.
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../Store/etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
             <epayco>
                 <active>1</active>
+                <model>PagoEpayco\Payco\Model\Epayco</model>
+                <order_status>pending</order_status>
                 <title>Epayco</title>
                 <p_cust_id_cliente>P_CUST_ID_CLIENTE</p_cust_id_cliente>
                 <p_key>P_KEY</p_key>
@@ -18,11 +20,10 @@
                 <url_de_confirmacion>URL de confirmación</url_de_confirmacion>
                 <modo_pruebas>Modo Pruebas</modo_pruebas>
                 <tipo_de_checkout>Tipo de Checkout</tipo_de_checkout>
-                <payment_action>true</payment_action>
-                <model>PagoEpayco\Payco\Model\Epayco</model>
-                <group>online</group>
+                <!--<payment_action>true</payment_action>-->
+                <allowspecific>0</allowspecific>
+                <group>epayco_payment</group>
             </epayco>
-            <!-- payment-config -->
         </payment>
     </default>
 </config>
