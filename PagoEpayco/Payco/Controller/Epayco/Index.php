@@ -97,7 +97,9 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
         $urlRedirect = trim($this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope));
         if($urlRedirect != ''){
-            $urlRedirect = $urlRedirect."?ref_payco=".$_GET['ref_payco'];
+            if(isset($_GET['ref_payco'])){
+                $urlRedirect = $urlRedirect."?ref_payco=".$_GET['ref_payco'];
+            }
         }
         $pendingOrderState = "pending";
 
