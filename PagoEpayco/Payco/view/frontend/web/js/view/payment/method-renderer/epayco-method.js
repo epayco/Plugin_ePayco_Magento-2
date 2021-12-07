@@ -15,7 +15,7 @@ define(
         'Magento_Checkout/js/model/url-builder',
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/model/place-order',
-        'https://checkout.epayco.co/checkout.js?version=1629309251348'
+        'https://checkout.epayco.co/checkout.js'
     ],
     function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer, placeOrderService) {
         'use strict';
@@ -149,8 +149,8 @@ define(
                                invoice: invoice,
                                currency: window.checkoutConfig.quoteData.store_currency_code,
                                amount: amount,
-                               tax_base: tax_base.replace('.',','),
-                               tax: taxes.replace('.',','),
+                               tax_base: tax_base,
+                               tax: taxes,
                                country: country,
                                lang: lang,
                                //Onpage='false' - Standard='true'
