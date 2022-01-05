@@ -26,7 +26,10 @@ define(
             },
             redirectAfterPlaceOrder: false,
             renderCheckout: async function() {
-
+                var button0 = document.getElementsByClassName('action primary checkout')[0];
+                var button1 = document.getElementsByClassName('action primary checkout')[1];
+                button0.disabled = true;
+                button1.disabled = true;
                 var countryBllg = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
                 var paymentData = {
@@ -167,6 +170,8 @@ define(
                                mobilephone_billing: mobile,
                                number_doc_billing: doc
                            };
+                            button0.disabled = false;
+                            button1.disabled = false;
                             handler.open(data);
                        }
                     },
