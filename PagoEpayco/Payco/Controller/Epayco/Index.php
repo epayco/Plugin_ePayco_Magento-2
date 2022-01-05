@@ -214,8 +214,10 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 $code = (Integer)$x_cod_transaction_state;
 
                 if($code == 1){
-                    $order->setState(Order::STATE_PROCESSING, true);
-                    $order->setStatus(Order::STATE_PROCESSING, true);
+                    if($order->getState() != "canceled"  ){
+                        $order->setState(Order::STATE_PROCESSING, true);
+                        $order->setStatus(Order::STATE_PROCESSING, true);
+                    }
                 } else if($code == 3){
                     $order->setState($pendingOrderState, true);
                     $order->setStatus($pendingOrderState, true);
