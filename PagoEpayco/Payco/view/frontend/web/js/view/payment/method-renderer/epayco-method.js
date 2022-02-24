@@ -26,7 +26,12 @@ define(
             },
             redirectAfterPlaceOrder: false,
             renderCheckout: async function() {
-
+                var button0 = document.getElementsByClassName('action primary checkout')[0];
+                var button1 = document.getElementsByClassName('action primary checkout')[1];
+                button0.disabled = true;
+                button1.disabled = true;
+                button0.style.disabled = true;
+                button1.style.disabled = true;
                 var countryBllg = quote.shippingAddress();
                 var customerData = checkoutData.getShippingAddressFromData();
                 var paymentData = {
@@ -53,6 +58,8 @@ define(
                 var totals = quote.getTotals();
                 var quoteIdData = this.getQuoteIdData();
                 var invoice;
+                var sku_;
+                var productData = [];
                 var settings = {
                     "url": url.build("response/payment/index"),
                     "method": "POST",
@@ -81,15 +88,41 @@ define(
                         console.log('processing...');
                         if(data == "warning" || data.length == 0 || data == "error" ) {
                             $.ajax(settings).done(function (response) {
-                                if( response.increment_id){
-                                    invoice = response.increment_id;
+                                
+                                if( response[0].increment_id){
+                                    invoice = response[0].increment_id;
+                                    var skuProduct= response[1];
+                                    if(skuProduct){
+                                       for (var i = 0; i < skuProduct.length; i++) {
+                                         sku_ = skuProduct[i].sku;
+                                         const resultado = skuProduct.find( producto => producto.sku === sku_ );
+                                         const busqueda = productData.find( producto => producto.sku === sku_ );
+                                            if(!busqueda){
+                                                productData.push(resultado)
+                                            }
+                                        } 
+                                    }
+                                    
                                 }
                             });
                         }else{
-                            invoice = data.increment_id;
+                            
+                            invoice = data[0].increment_id;
+                            var skuProduct= data[1];
+                            if(skuProduct){
+                                for (var i = 0; i < skuProduct.length; i++) {
+                                    sku_ = skuProduct[i].sku;
+                                    const resultado = skuProduct.find( producto => producto.sku === sku_ );
+                                    const busqueda = productData.find( producto => producto.sku === sku_ );
+                                    if(!busqueda){
+                                            productData.push(resultado)
+                                        }
+                                    } 
+                            }
                         }
 
                        if(invoice){
+                           var order_data_product = JSON.stringify(productData);
                            if(window.checkoutConfig.payment.epayco.payco_test == "1"){
                                window.checkoutConfig.payment.epayco.payco_test= "true";
                                var test2 = true;
@@ -101,9 +134,6 @@ define(
                                key: window.checkoutConfig.payment.epayco.payco_public_key,
                                test:test2
                            })
-                           var taxes = 0;
-                           taxes = totals._latestValue.base_tax_amount
-                           taxes = ''+taxes;
                            var items = '';
                            for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
                                if(window.checkoutConfig.totalsData.items.length==1){
@@ -117,10 +147,6 @@ define(
                            var mobile = '';
                            var doc= '';
                            var country = '';
-                           //calcular base iva
-                           var tax_base = 0;
-                           tax_base = totals._latestValue.base_subtotal_with_discount;
-                           tax_base = ''+tax_base;
                            // fin calcular base iva
                            if(!window.checkoutConfig.isCustomerLoggedIn){
                                if(customerData){
@@ -139,8 +165,12 @@ define(
                            var lang = '';
                            var temp = window.checkoutConfig.payment.epayco.language.split("_");
                            lang = temp[0];
-                           var amount = '';
+                           var amount = 0;
                            amount = totals._latestValue.base_grand_total;
+                           var taxes = 0;
+                           taxes = totals._latestValue.base_tax_amount;
+                           var tax_base = 0;
+                           tax_base = amount - taxes;
 
                            var data={
                                //Parametros compra (obligatorio)
@@ -158,6 +188,8 @@ define(
                                //Atributos opcionales
                                extra1: orderId,
                                extra2: invoice,
+                               extra3: productData,
+                               extra4: order_data_product,
                                confirmation:url.build("confirmation/epayco/index"),
                                response: url.build("confirmation/epayco/index"),
                                //Atributos cliente
@@ -167,7 +199,12 @@ define(
                                mobilephone_billing: mobile,
                                number_doc_billing: doc
                            };
+                            button0.disabled = false;
+                            button1.disabled = false;
+                            button0.style.disabled = false;
+                            button1.style.disabled = false;
                             handler.open(data);
+                            console.log(data)
                        }
                     },
                     error :function(error){

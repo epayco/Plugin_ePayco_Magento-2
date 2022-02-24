@@ -85,9 +85,25 @@ class Index extends \Magento\Framework\App\Action\Action
                 $sql = "SELECT * FROM sales_order WHERE quote_id = '$orderId_'";
                 $result_ = $connection->fetchAll($sql);
                 if($result_ != null){
-                    return $result->setData($result_[0]);
+                    $quote_id = $result_[0]['quote_id'];
+                    $sqlQuote = "SELECT sku FROM quote_item WHERE quote_id = '$quote_id'";
+                    $quote_data_ = $connection->fetchAll($sqlQuote);
+                    if($quote_data_ != null){
+                        foreach($quote_data_ as $sku){
+                            $sku_ = $sku["sku"];
+                             $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku_' ORDER BY reservation_id ASC";  
+                             $query_ = $connection->fetchAll($sql_);
+                             if($query_ != null){
+                                 foreach($query_ as $productInventory){
+                                    $sku_products[] =$productInventory;
+                                 }
+                             }
+                        }
+                        
+                    }
+                    return $result->setData([$result_[0],$sku_products]);
                 }else{
-                    return $result->setData('warning' );
+                    return $result->setData('warning');
                 }
 
         } else {
