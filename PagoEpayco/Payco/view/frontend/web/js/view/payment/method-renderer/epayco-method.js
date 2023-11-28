@@ -187,15 +187,7 @@ define(
                                    localStorage.setItem("invoicePayment", invoice);
                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                }else{
-                                   if(localStorage.getItem("sessionPayment") == null){
-                                       _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
-                                   }else{
-                                       const handlerNew = ePayco.checkout.configure({
-                                           sessionId: localStorage.getItem("sessionPayment"),
-                                           external: data.external == 'true' ? true: false,
-                                       });
-                                       handlerNew.openNew()
-                                   }
+                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                }
                            }
                        }
