@@ -108,7 +108,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         if(isset($_GET['ref_payco'])){
             $ref_payco = $_GET['ref_payco'];
 
-            $this->_curl->get("https://secure.epayco.co/validation/v1/reference/" . $ref_payco);
+            $this->_curl->get("https://secure.epayco.io/validation/v1/reference/" . $ref_payco);
             $response = $this->_curl->getBody();
             $dataTransaction = json_decode($response);
 
@@ -186,11 +186,11 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $x_test_request = trim($_REQUEST['x_test_request']);
             $isTestTransaction = $x_test_request == 'TRUE' ? "yes" : "no";
             $isTestMode = $isTestTransaction == "yes" ? "true" : "false";
-            
+
             if(trim($this->scopeConfig->getValue('payment/epayco/payco_test',$storeScope)) == "1"){
                 $isTestPluginMode = "yes";
             }else{
-                $isTestPluginMode = "no"; 
+                $isTestPluginMode = "no";
             }
             if(floatval($order->getData()['base_grand_total'])==floatval($x_amount)){
                 if("yes" == $isTestPluginMode){
@@ -206,12 +206,12 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                             $validation = false;
                         }
                     }
-                    
+
                 }
             }else{
                 $validation = false;
             }
-            
+
             if($x_signature == $signature && $validation){
                 $x_cod_transaction_state =trim($_REQUEST['x_cod_transaction_state']);
                 $code = (Integer)$x_cod_transaction_state;
@@ -276,7 +276,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         if($result != null){
             foreach($result as $sku){
                 $sku  = $sku["sku"];
-                $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";  
+                $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
                 $query = $connection->fetchAll($sql_);
                 if($query != null){
                     foreach($query as $productInventory){
@@ -309,7 +309,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             'sales_order_grid',
             ['status' => 'canceled'],
             ['increment_id = ?' => $increment_id]
-        );   
+        );
     }
 
     public function getRealOrderId()

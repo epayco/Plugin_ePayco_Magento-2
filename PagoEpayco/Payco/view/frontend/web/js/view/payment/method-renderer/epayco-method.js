@@ -15,7 +15,7 @@ define(
         'Magento_Checkout/js/model/url-builder',
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/model/place-order',
-        'https://checkout.epayco.co/checkout.js'
+        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js'
     ],
     function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer, placeOrderService) {
         'use strict';
@@ -57,6 +57,8 @@ define(
                 var getQuoteIncrement = this.getQuoteIncrementId();
                 var totals = quote.getTotals();
                 var quoteIdData = this.getQuoteIdData();
+                var ip =  this.getCustomerIp();
+                var _this = await this;
                 var invoice;
                 var settings = {
                     "url": url.build("response/payment/index"),
@@ -102,10 +104,7 @@ define(
                                window.checkoutConfig.payment.epayco.payco_test = "false";
                                var test2 = false;
                            }
-                           var handler = ePayco.checkout.configure({
-                               key: window.checkoutConfig.payment.epayco.payco_public_key,
-                               test:test2
-                           })
+
                            var items = '';
                            for(var i = 0; i <  window.checkoutConfig.quoteItemData.length; i++){
                                if(window.checkoutConfig.totalsData.items.length==1){
@@ -143,6 +142,7 @@ define(
                            taxes = totals._latestValue.base_tax_amount;
                            var tax_base = 0;
                            tax_base = amount - taxes;
+                           parseFloat(tax_base);
 
                            var data={
                                //Parametros compra (obligatorio)
@@ -150,9 +150,9 @@ define(
                                description: items,
                                invoice: invoice,
                                currency: window.checkoutConfig.quoteData.store_currency_code,
-                               amount: amount,
-                               tax_base: tax_base,
-                               tax: taxes,
+                               amount: amount.toString(),
+                               tax_base: tax_base.toString(),
+                               tax: taxes.toString(),
                                country: country,
                                lang: lang,
                                //Onpage='false' - Standard='true'
@@ -167,13 +167,37 @@ define(
                                address_billing: address_billing,
                                type_doc_billing: docType,
                                mobilephone_billing: mobile,
-                               number_doc_billing: doc
+                               number_doc_billing: doc,
+                               autoclick: "true",
+                               ip: ip,
+                               test: test2.toString()
                            };
                             button0.disabled = false;
                             button1.disabled = false;
                             button0.style.disabled = false;
                             button1.style.disabled = false;
-                            handler.open(data);
+                           const apiKey = window.checkoutConfig.payment.epayco.payco_public_key;
+                           const privateKey = window.checkoutConfig.payment.epayco.payco_private_key;
+                           if(localStorage.getItem("invoicePayment") == null){
+                               localStorage.setItem("invoicePayment", invoice);
+                               _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                           }else{
+                               if(localStorage.getItem("invoicePayment") != invoice){
+                                   localStorage.removeItem("invoicePayment");
+                                   localStorage.setItem("invoicePayment", invoice);
+                                   _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                               }else{
+                                   if(localStorage.getItem("sessionPayment") == null){
+                                       _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                   }else{
+                                       const handlerNew = ePayco.checkout.configure({
+                                           sessionId: localStorage.getItem("sessionPayment"),
+                                           external: data.external == 'true' ? true: false,
+                                       });
+                                       handlerNew.openNew()
+                                   }
+                               }
+                           }
                        }
                     },
                     error :function(error){
@@ -212,6 +236,39 @@ define(
             responseAction: function(){
                 return window.checkoutConfig.payment.epayco.responseAction;
             },
+            getCustomerIp: function(){
+                return window.checkoutConfig.payment.epayco.getCustomerIp;
+            },
+            makePayment:  function (privatekey, apikey, info, external) {
+                const headers = { 'Content-Type': 'application/json' } ;
+                headers['privatekey'] = privatekey;
+                headers['apikey'] = apikey;
+                var payment =   function (){
+                    return  fetch("https://cms.epayco.io/checkout/payment/session", {
+                        method: 'POST',
+                        body: JSON.stringify(info),
+                        headers
+                    })
+                        .then(res =>  res.json())
+                        .catch(err => err);
+                }
+                payment()
+                    .then(session => {
+                        if(session.data.sessionId != undefined){
+                            localStorage.removeItem("sessionPayment");
+                            localStorage.setItem("sessionPayment", session.data.sessionId);
+                            const handlerNew = window.ePayco.checkout.configure({
+                                sessionId: session.data.sessionId,
+                                external: external,
+                            });
+                            handlerNew.openNew()
+                        }
+                    })
+                    .catch(error => {
+                        error.message;
+                    });
+            }
+
         });
     }
 );
