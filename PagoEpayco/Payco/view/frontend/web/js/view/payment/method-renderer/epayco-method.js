@@ -15,9 +15,11 @@ define(
         'Magento_Checkout/js/model/url-builder',
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/model/place-order',
-        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js'
+        'https://checkout.epayco.co/checkout.js',
+        'Magento_Checkout/js/model/full-screen-loader',
+        'Magento_Ui/js/modal/alert',
     ],
-    function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer, placeOrderService) {
+    function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer, placeOrderService, ePayco, fullScreenLoader, alert) {
         'use strict';
         return Component.extend({
             defaults: {
@@ -25,7 +27,9 @@ define(
                 template: 'PagoEpayco_Payco/payment/epayco'
             },
             redirectAfterPlaceOrder: false,
-            renderCheckout: async function() {
+            renderCheckout: function() {
+               // $('#loader-gateway').trigger('processStart');
+               fullScreenLoader.startLoader();
                 var button0 = document.getElementsByClassName('action primary checkout')[0];
                 var button1 = document.getElementsByClassName('action primary checkout')[1];
                 button0.disabled = true;
@@ -37,6 +41,13 @@ define(
                 var paymentData = {
                     method: 'epayco'
                 };
+                  var docType='';
+                   var mobile = '';
+                   var doc= '';
+                   var country = '';
+                   var email = '';
+                   var name_billing = '';
+                   var address_billing = '';
                 var serviceUrl, payload;
                 payload = {
                     cartId: quote.getQuoteId(),
@@ -46,19 +57,30 @@ define(
 
                 if (customer.isLoggedIn()) {
                     serviceUrl = urlBuilder.createUrl('/carts/mine/payment-information', {});
-                } else {
+                    email = customer.customerData.email;
+                    //mobile = customer.customerData.addresses[0].telephone;
+                    mobile = '';
+                    name_billing =  customer.customerData.firstname + ' ' + customer.customerData.lastname;
+                    //address_billing =  customer.customerData.addresses[0].street[0];
+                    //country = customer.customerData.addresses[0].country_id;
+                    } else {
                     serviceUrl = urlBuilder.createUrl('/guest-carts/:quoteId/payment-information', {
                         quoteId: quote.getQuoteId()
                     });
                     payload.email = quote.guestEmail;
+                     email = quote.guestEmail;
+                     mobile = '';
+                    name_billing = quote.billingAddress().firstname + ' '+ quote.billingAddress().lastname;
+                    address_billing = quote.billingAddress().street[0];
+                    country = quote.billingAddress().countryId;
                 }
-                 placeOrderService(serviceUrl, payload, messageContainer);
+                // placeOrderService(serviceUrl, payload, messageContainer);
                 var orderId = this.getOrderId();
                 var getQuoteIncrement = this.getQuoteIncrementId();
                 var totals = quote.getTotals();
                 var quoteIdData = this.getQuoteIdData();
                 var ip =  this.getCustomerIp();
-                var _this = await this;
+                var _this =  this;
                 var invoice;
                 var settings = {
                     "url": url.build("response/payment/index"),
@@ -73,7 +95,7 @@ define(
                         "order_id": quoteIdData
                     }
                 }
-                 await $.ajax({
+                  $.ajax({
                     url: url.build("response/payment/index"),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -114,23 +136,20 @@ define(
                                }
 
                            }
-                           var docType='';
-                           var mobile = '';
-                           var doc= '';
-                           var country = '';
+
                            // fin calcular base iva
                            if(!window.checkoutConfig.isCustomerLoggedIn){
                                if(customerData){
-                                   var name_billing =  customerData.firstname + ' ' + customerData.lastname;
-                                   var address_billing =  customerData.street[0]+ ' ' + customerData.street[1];
+                                   name_billing =  customerData.firstname + ' ' + customerData.lastname;
+                                   address_billing =  customerData.street[0]+ ' ' + customerData.street[1];
                                    country = customerData.country_id;
                                }else{
                                    country = 'CO';
                                }
                            } else {
-                               var  name_billing = window.checkoutConfig.customerData.firstname + ' '+ window.checkoutConfig.customerData.lastname;
+                               name_billing = window.checkoutConfig.customerData.firstname + ' '+ window.checkoutConfig.customerData.lastname;
                                mobile = countryBllg.telephone;
-                               var address_billing = countryBllg.street[0];
+                               address_billing = countryBllg.street[0];
                                country = countryBllg.countryId;
                            }
                            var lang = '';
@@ -163,6 +182,7 @@ define(
                                confirmation:url.build("confirmation/epayco/index"),
                                response: url.build("confirmation/epayco/index"),
                                //Atributos cliente
+                                email_billing:email,
                                name_billing: name_billing,
                                address_billing: address_billing,
                                type_doc_billing: docType,
@@ -193,6 +213,11 @@ define(
                        }
                     },
                     error :function(error){
+                        //$('body').trigger('processStop');
+                         fullScreenLoader.stopLoader();
+                        alert({
+                            content: $.mage.__('Sorry, something went wrong. Please try again later.')
+                        });
                         console.log('error: '+error);
                     }
                 });
@@ -231,12 +256,15 @@ define(
             getCustomerIp: function(){
                 return window.checkoutConfig.payment.epayco.getCustomerIp;
             },
+            afterPlaceOrder: function () {
+                this.renderCheckout();
+            },
             makePayment:  function (privatekey, apikey, info, external) {
                 const headers = { 'Content-Type': 'application/json' } ;
                 headers['privatekey'] = privatekey;
                 headers['apikey'] = apikey;
                 var payment =   function (){
-                    return  fetch("https://cms.epayco.io/checkout/payment/session", {
+                    return  fetch("https://cms.epayco.co/checkout/payment/session", {
                         method: 'POST',
                         body: JSON.stringify(info),
                         headers
@@ -253,10 +281,17 @@ define(
                                 sessionId: session.data.sessionId,
                                 external: external,
                             });
+                            //$('body').trigger('processStop');
+                            //$('#loader-gateway').trigger('processStop');
+                            fullScreenLoader.stopLoader();
                             handlerNew.openNew()
                         }
                     })
                     .catch(error => {
+                        fullScreenLoader.stopLoader();
+                        alert({
+                            content: $.mage.__('Sorry, something went wrong. Please try again later.')
+                        });
                         error.message;
                     });
             }
