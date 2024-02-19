@@ -170,7 +170,8 @@ define(
                                number_doc_billing: doc,
                                autoclick: "true",
                                ip: ip,
-                               test: test2.toString()
+                               test: test2.toString(),
+                               extras_epayco:{extra5:"p27"}
                            };
                             button0.disabled = false;
                             button1.disabled = false;
