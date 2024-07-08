@@ -1,5 +1,5 @@
 /**
- * Copyright © 2015 Magento. All rights reserved.
+ * Copyright © 2016 Magento. All rights reserved.
  * See COPYING.txt for license details.
  */
 /*browser:true*/
@@ -17,7 +17,7 @@ define(
         rendererList.push(
             {
                 type: 'epayco',
-                component: 'PagoEpayco_Payco/js/view/payment/method-renderer/epayco-method'
+                component: 'PagoEpayco_Payco/js/view/payment/method-renderer/epayco'
             }
         );
         /** Add view logic here if needed */

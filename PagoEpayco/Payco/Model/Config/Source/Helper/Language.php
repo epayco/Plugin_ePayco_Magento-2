@@ -9,7 +9,7 @@ namespace PagoEpayco\Payco\Model\Config\Source\Helper;
  * Order Status source model
  */
 
-class Vertical implements \Magento\Framework\Option\ArrayInterface
+class Language implements \Magento\Framework\Option\ArrayInterface
 {
     /**
      * {@inheritdoc}
@@ -19,8 +19,8 @@ class Vertical implements \Magento\Framework\Option\ArrayInterface
     public function toOptionArray()
     {
         return [
-            ['value' => 'false', 'label' => __('Onpage Checkout')],
-            ['value' => 'true', 'label' => __('Standart Checkout')],
+            ['value' => 'es', 'label' => __('Español')],
+            ['value' => 'en', 'label' => __('Ingles')],
 
         ];
     }
