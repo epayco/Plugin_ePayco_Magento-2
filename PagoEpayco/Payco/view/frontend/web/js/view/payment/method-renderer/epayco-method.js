@@ -48,7 +48,6 @@ define(
                     }
                 };
             },
-
             getTransactionResults: function() {
                 return _.map(window.checkoutConfig.payment.epayco.transactionResults, function(value, key) {
                     return {
