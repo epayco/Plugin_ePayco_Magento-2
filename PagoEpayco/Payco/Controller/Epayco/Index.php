@@ -81,7 +81,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 $urlRedirect = $urlRedirect."?ref_payco=".$_GET['ref_payco'];
             }
         }
-        $pendingOrderState = \Magento\Sales\Model\Order::STATE_PENDING_PAYMENT;
+        $pendingOrderState = Order::STATE_PENDING_PAYMENT;
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
         /** @var \Magento\Sales\Api\OrderRepositoryInterface $orderRepository */
@@ -90,7 +90,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         if(isset($_GET['ref_payco'])){
             $ref_payco = $_GET['ref_payco'];
 
-            $this->_curl->get("https://secure.epayco.co/validation/v1/reference/" . $ref_payco);
+            $this->_curl->get("https://secure.epayco.io/validation/v1/reference/" . $ref_payco);
             $response = $this->_curl->getBody();
             $dataTransaction = json_decode($response);
 

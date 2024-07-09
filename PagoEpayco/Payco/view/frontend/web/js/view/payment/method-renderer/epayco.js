@@ -16,9 +16,10 @@ define(
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/model/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
-        'Magento_Checkout/js/action/place-order'
+        'Magento_Checkout/js/action/place-order',
+        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js'
     ],
-    function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer,placeOrderService,fullScreenLoader,placeOrderAction) {
+    function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer,placeOrderService,fullScreenLoader,placeOrderAction,ePayco) {
         'use strict';
 
         return Component.extend({
@@ -27,15 +28,14 @@ define(
                 transactionResult: ''
             },
             redirectAfterPlaceOrder: false,
-            initObservable: function () {
+            /*initObservable: function () {
                 this.loadScript('https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js', function() {
                     console.log('Script loaded successfully.');
                 });
                 return this;
-            },
+            },*/
             renderCheckout: function() {
                 fullScreenLoader.startLoader();
-                debugger;
                 var getQuoteId = this.getQuoteId();
                 var ip = this.getCustomerIp();
                 var _this = this;
@@ -51,7 +51,6 @@ define(
                         "order_id": getQuoteId
                     },
                     success: function(data){
-                        debugger;
                         if(data.success){
                             var checkoutConfig= window.checkoutConfig;
                             let stringNumber = "000000000";
@@ -115,20 +114,24 @@ define(
                                 ip: ip,
                                 test: test.toString()
                             };
-                            debugger;
-                            console.log(data)
-                            const apiKey = window.checkoutConfig.payment.epayco.payco_public_key;
-                            const privateKey = window.checkoutConfig.payment.epayco.payco_private_key;
+                            const apiKey = window.checkoutConfig.payment.epayco.payco_public_key.trim();
+                            const privateKey = window.checkoutConfig.payment.epayco.payco_private_key.trim();
+                            var handler = window.ePayco.checkout.configure({
+                               key: apiKey,
+                               test:test
+                           })
+                           fullScreenLoader.stopLoader();
+                           handler.open(data);
                             if(localStorage.getItem("invoicePayment") == null){
                                 localStorage.setItem("invoicePayment", invoice);
-                                _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                             }else{
                                 if(localStorage.getItem("invoicePayment") != invoice){
                                     localStorage.removeItem("invoicePayment");
                                     localStorage.setItem("invoicePayment", invoice);
-                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                    //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                 }else{
-                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                    //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                 }
                             }
                             //window.location.replace(url.build('checkout/onepage/success'));
@@ -196,7 +199,6 @@ define(
                 }
                 payment()
                     .then(session => {
-                        debugger;
                         if(session.data.sessionId != undefined){
                             localStorage.removeItem("sessionPayment");
                             localStorage.setItem("sessionPayment", session.data.sessionId);
@@ -209,7 +211,6 @@ define(
                         }
                     })
                     .catch(error => {
-                        debugger
                         fullScreenLoader.stopLoader();
                         alert({
                             content: $.mage.__('Sorry, something went wrong. Please try again later.')
