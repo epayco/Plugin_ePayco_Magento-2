@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Payment Method Facade configuration -->
+    <virtualType name="PagoEpaycoPaycoFacade" type="Magento\Payment\Model\Method\Adapter">
+        <arguments>
+            <argument name="code" xsi:type="const">\PagoEpayco\Payco\Model\Ui\ConfigProvider::CODE</argument>
+            <argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+            <argument name="infoBlockType" xsi:type="string">PagoEpayco\Payco\Block\Info</argument>
+            <argument name="valueHandlerPool" xsi:type="object">PagoEpaycoPaycoValueHandlerPool</argument>
+            <argument name="commandPool" xsi:type="object">PagoEpaycoPaycoCommandPool</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Configuration reader -->
+    <virtualType name="PagoEpaycoPaycoConfig" type="Magento\Payment\Gateway\Config\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">\PagoEpayco\Payco\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Logger, initialized with PagoEpaycoPaycoConfig -->
+    <virtualType name="PagoEpaycoPaycoLogger" type="Magento\Payment\Model\Method\Logger">
+        <arguments>
+            <argument name="config" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </virtualType>
+
+     <type name="PagoEpayco\Payco\Gateway\Http\Client\ClientMock">
+         <arguments>
+             <argument name="logger" xsi:type="object">PagoEpaycoPaycoLogger</argument>
+         </arguments>
+     </type>
+
+    <virtualType name="PagoEpaycoPaycoCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="authorize" xsi:type="string">PagoEpaycoPaycoAuthorizeCommand</item>
+                <item name="capture" xsi:type="string">PagoEpaycoPaycoCaptureCommand</item>
+                <item name="void" xsi:type="string">PagoEpaycoPaycoVoidCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="PagoEpaycoPaycoAuthorizeCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">PagoEpaycoPaycoAuthorizationRequest</argument>
+            <argument name="handler" xsi:type="object">PagoEpaycoPaycoResponseHandlerComposite</argument>
+            <argument name="transferFactory" xsi:type="object">PagoEpayco\Payco\Gateway\Http\TransferFactory</argument>
+            <argument name="client" xsi:type="object">PagoEpayco\Payco\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="PagoEpaycoPaycoAuthorizationRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="transaction" xsi:type="string">PagoEpayco\Payco\Gateway\Request\AuthorizationRequest</item>
+                <item name="mockData" xsi:type="string">PagoEpayco\Payco\Gateway\Request\MockDataRequest</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="PagoEpayco\Payco\Gateway\Request\AuthorizationRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </type>
+
+    <virtualType name="PagoEpaycoPaycoCaptureCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">PagoEpayco\Payco\Gateway\Request\CaptureRequest</argument>
+            <argument name="handler" xsi:type="object">PagoEpayco\Payco\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">PagoEpayco\Payco\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">PagoEpayco\Payco\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">PagoEpayco\Payco\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="PagoEpayco\Payco\Gateway\Request\CaptureRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </type>
+
+    <virtualType name="PagoEpaycoPaycoVoidCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">PagoEpayco\Payco\Gateway\Request\VoidRequest</argument>
+            <argument name="handler" xsi:type="object">PagoEpayco\Payco\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">PagoEpayco\Payco\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">PagoEpayco\Payco\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">PagoEpayco\Payco\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="PagoEpayco\Payco\Gateway\Request\VoidRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </type>
+
+    <virtualType name="PagoEpaycoPaycoResponseHandlerComposite" type="Magento\Payment\Gateway\Response\HandlerChain">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="txnid" xsi:type="string">PagoEpayco\Payco\Gateway\Response\TxnIdHandler</item>
+                <item name="fraud" xsi:type="string">PagoEpayco\Payco\Gateway\Response\FraudHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="PagoEpaycoPaycoValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="default" xsi:type="string">PagoEpaycoPaycoConfigValueHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="PagoEpaycoPaycoConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+        <arguments>
+            <argument name="configInterface" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="PagoEpayco\Payco\Block\Info">
+        <arguments>
+            <argument name="config" xsi:type="object">PagoEpaycoPaycoConfig</argument>
+        </arguments>
+    </type>
+
+</config>

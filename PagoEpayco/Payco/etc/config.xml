@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Copyright © 2015 Magento. All rights reserved.
+ * Copyright © 2016 Magento. All rights reserved.
  * See COPYING.txt for license details.
  */
 -->
@@ -9,10 +9,10 @@
     <default>
         <payment>
             <epayco>
-                <active>1</active>
-                <model>PagoEpayco\Payco\Model\Epayco</model>
-                <order_status>pending</order_status>
-                <title>Epayco</title>
+                <debug>1</debug>
+                <active>0</active>
+                <model>PagoEpaycoPaycoFacade</model>
+                <merchant_gateway_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <p_cust_id_cliente>P_CUST_ID_CLIENTE</p_cust_id_cliente>
                 <p_key>P_KEY</p_key>
                 <public_key>Public_KEY</public_key>
@@ -21,9 +21,21 @@
                 <url_de_confirmacion>URL de confirmación</url_de_confirmacion>
                 <modo_pruebas>Modo Pruebas</modo_pruebas>
                 <tipo_de_checkout>Tipo de Checkout</tipo_de_checkout>
-                <!--<payment_action>true</payment_action>-->
+                <lenguage_de_checkout>Lenguage de Checkout</lenguage_de_checkout>
+                <order_status>pending_payment</order_status>
                 <allowspecific>0</allowspecific>
-                <group>epayco_payment</group>
+                <!--<payment_action>authorize</payment_action>-->
+                <title>ePayco</title>
+                <currency>USD</currency>
+                <can_authorize>1</can_authorize>
+                <can_capture>1</can_capture>
+                <can_void>1</can_void>
+                <can_use_checkout>1</can_use_checkout>
+                <is_gateway>1</is_gateway>
+                <sort_order>1</sort_order>
+                <debugReplaceKeys>MERCHANT_KEY</debugReplaceKeys>
+                <paymentInfoKeys>FRAUD_MSG_LIST</paymentInfoKeys>
+                <privateInfoKeys>FRAUD_MSG_LIST</privateInfoKeys>
             </epayco>
         </payment>
     </default>
