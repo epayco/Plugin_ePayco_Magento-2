@@ -3,8 +3,8 @@
     <policies>
         <policy id="script-src">
             <values>
-                <value id="epayco" type="host">https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js</value>
-                <value id="cmsepayco" type="host">https://cms.epayco.io</value>
+                <value id="epayco" type="host">https://checkout.epayco.co/checkout.js</value>
+                <value id="cmsepayco" type="host">https://cms.epayco.co</value>
             </values>
         </policy>
         <policy id="connect-src">
@@ -12,7 +12,10 @@
                 <value id="apifyprivate" type="host">https://apify-private.epayco.co</value>
             </values>
             <values>
-                <value id="secureepayco" type="host">https://secure.epayco.io</value>
+                <value id="secureepayco" type="host">https://secure.epayco.co</value>
+            </values>
+            <values>
+                <value id="epaycosession" type="host">https://cms.epayco.co/checkout/payment/session</value>
             </values>
         </policy>
     </policies>

@@ -17,7 +17,7 @@ define(
         'Magento_Checkout/js/model/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Checkout/js/action/place-order',
-        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js'
+        'https://checkout.epayco.co/checkout.js'
     ],
     function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer,placeOrderService,fullScreenLoader,placeOrderAction,ePayco) {
         'use strict';
@@ -29,7 +29,7 @@ define(
             },
             redirectAfterPlaceOrder: false,
             /*initObservable: function () {
-                this.loadScript('https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js', function() {
+                this.loadScript('https://checkout.epayco.co/checkout.js', function() {
                     console.log('Script loaded successfully.');
                 });
                 return this;
@@ -55,7 +55,7 @@ define(
                             var checkoutConfig= window.checkoutConfig;
                             let stringNumber = "000000000";
                             let number = parseInt(stringNumber, 10);
-                            let result = number + data.order_id;
+                            let result = number + data.order_id -1;
                             let invoice = result.toString().padStart(9, '0');
                             var shippingAddress = quote.shippingAddress();
                             var billingAddress = quote.billingAddress();
@@ -114,6 +114,7 @@ define(
                                 ip: ip,
                                 test: test.toString()
                             };
+                            
                             const apiKey = window.checkoutConfig.payment.epayco.payco_public_key.trim();
                             const privateKey = window.checkoutConfig.payment.epayco.payco_private_key.trim();
                             var handler = window.ePayco.checkout.configure({
@@ -121,17 +122,17 @@ define(
                                test:test
                            })
                            fullScreenLoader.stopLoader();
-                           handler.open(data);
+                           //handler.open(data);
                             if(localStorage.getItem("invoicePayment") == null){
                                 localStorage.setItem("invoicePayment", invoice);
-                                //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                             }else{
                                 if(localStorage.getItem("invoicePayment") != invoice){
                                     localStorage.removeItem("invoicePayment");
                                     localStorage.setItem("invoicePayment", invoice);
-                                    //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                 }else{
-                                    //_this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
+                                    _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
                                 }
                             }
                             //window.location.replace(url.build('checkout/onepage/success'));
@@ -189,7 +190,7 @@ define(
                 headers['privatekey'] = privatekey;
                 headers['apikey'] = apikey;
                 var payment = function (){
-                    return  fetch("https://cms.epayco.io/checkout/payment/session", {
+                    return  fetch("https://cms.epayco.co/checkout/payment/session", {
                         method: 'POST',
                         body: JSON.stringify(info),
                         headers
