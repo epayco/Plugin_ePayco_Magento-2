@@ -20,7 +20,9 @@
  */
 
 namespace PagoEpayco\Payco\Controller\Epayco;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Sales\Model\Order;
@@ -29,11 +31,6 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
 {
     protected $resultPageFactory;
     protected $resultJsonFactory;
-    protected $checkoutSession;
-    protected $orderFactory;
-    protected $cartManagement;
-    protected $quote;
-    protected $resultRedirect;
     protected $_curl;
 
     /**
@@ -46,30 +43,11 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Quote\Api\CartManagementInterface $cartManagement,
-        \Magento\Quote\Model\Quote $quote,
         \Magento\Framework\HTTP\Client\Curl $curl,
-        \Magento\Framework\App\Helper\Context $contextApp,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \PagoEpayco\Payco\Controller\PaymentController $payment_controller,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Quote\Model\QuoteFactory $quoteFactory
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->resultJsonFactory = $resultJsonFactory;
-        $this->checkoutSession = $checkoutSession;
-        $this->orderFactory = $orderFactory;
-        $this->cartManagement = $cartManagement;
-        $this->quote = $quote;
         $this->_curl = $curl;
-        $this->contextApp = $contextApp;
-        $this->scopeConfig = $scopeConfig;
-        $this->paymentController = $payment_controller;
-        $this->orderRepository = $orderRepository;
-        $this->quoteFactory = $quoteFactory;
-
         parent::__construct($context);
     }
 
@@ -90,20 +68,24 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
      */
     public function execute()
     {
+        $scopeConfig = ObjectManager::getInstance()->get(ScopeConfigInterface::class);
         $url = $_SERVER['REQUEST_SCHEME']."://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
         $server_name = str_replace('/confirmation/epayco/index','/checkout/onepage/success/',$url);
         $new_url = $server_name;
         $result = $this->resultJsonFactory->create();
         $storeScope = \Magento\Store\Model\ScopeInterface::SCOPE_STORE;
-        $urlRedirect = trim($this->scopeConfig->getValue('payment/epayco/payco_callback',$storeScope));
+        //$urlRedirect = trim($scopeConfig->getValue('payment/epayco/payco_callback',$storeScope));
+        $urlRedirect = '';
         if($urlRedirect != ''){
             if(isset($_GET['ref_payco'])){
                 $urlRedirect = $urlRedirect."?ref_payco=".$_GET['ref_payco'];
             }
         }
-        $pendingOrderState = "pending";
+        $pendingOrderState = Order::STATE_PENDING_PAYMENT;
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+        /** @var \Magento\Sales\Api\OrderRepositoryInterface $orderRepository */
+        $orderRepository = $objectManager->create(\Magento\Sales\Api\OrderRepositoryInterface::class);
         $connection = $resource->getConnection();
         if(isset($_GET['ref_payco'])){
             $ref_payco = $_GET['ref_payco'];
@@ -145,7 +127,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 }
 
                 try{
-                    $this->orderRepository->save($order);
+                    $orderRepository->save($order);
                 } catch(\Exception $e){
                     if($urlRedirect != ''){
                         return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
@@ -177,8 +159,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $x_transaction_id = trim($_REQUEST['x_transaction_id']);
             $x_approval_code = trim($_REQUEST['x_approval_code']);
             $x_cod_transaction_state = trim($_REQUEST['x_cod_transaction_state']);
-            $p_cust_id_cliente = trim($this->scopeConfig->getValue('payment/epayco/payco_merchant',$storeScope));
-            $p_key = trim($this->scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
+            $p_cust_id_cliente = trim($scopeConfig->getValue('payment/epayco/p_cust_id_cliente',$storeScope));
+            $p_key = trim($scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
             $signature  = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
             $orderId = (Integer)$x_extra1;
             $order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
@@ -186,7 +168,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $isTestTransaction = $x_test_request == 'TRUE' ? "yes" : "no";
             $isTestMode = $isTestTransaction == "yes" ? "true" : "false";
 
-            if(trim($this->scopeConfig->getValue('payment/epayco/payco_test',$storeScope)) == "1"){
+            if(trim($scopeConfig->getValue('payment/epayco/payco_test',$storeScope)) == "1"){
                 $isTestPluginMode = "yes";
             }else{
                 $isTestPluginMode = "no";
@@ -258,6 +240,11 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                     $order->setState(Order::STATE_CANCELED, true);
                     $order->setStatus(Order::STATE_CANCELED, true);
                 }
+                try{
+                    $order->save();
+                } catch(\Exception $e){
+                    return $result->setData(['Error No se creo la orden']);
+                }
                 return $result->setData(['no entro a la signature']);
             }
         } else {
@@ -311,28 +298,4 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         );
     }
 
-    public function getRealOrderId()
-    {
-        $lastorderId = $this->checkoutSession->getLastOrderId();
-        return $lastorderId;
-    }
-
-    public function getOrder()
-    {
-        if ($this->checkoutSession->getLastRealOrderId()) {
-            $order = $this->orderFactory->create()->loadByIncrementId($this->checkoutSession->getLastRealOrderId());
-            return $order;
-        }
-        return false;
-    }
-
-    public function getShippingInfo()
-    {
-        $order = $this->getOrder();
-        if($order) {
-            $address = $order->getShippingAddress();
-            return $address;
-        }
-        return false;
-    }
 }
