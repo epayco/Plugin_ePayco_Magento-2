@@ -39,6 +39,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
      * @param \Magento\Framework\App\Action\Context  $context
      * @param \Magento\Framework\Json\Helper\Data $jsonHelper
      */
+    
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
@@ -86,48 +87,75 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
         /** @var \Magento\Sales\Api\OrderRepositoryInterface $orderRepository */
         $orderRepository = $objectManager->create(\Magento\Sales\Api\OrderRepositoryInterface::class);
+        $stockRegistry = $objectManager->get(\Magento\CatalogInventory\Api\StockRegistryInterface::class);
         $connection = $resource->getConnection();
+        //$orderEpayco =  $objectManager->create(\PagoEpayco\Payco\Model\OrderEpayco::class);
+        $collectionFactory = $objectManager->get(\PagoEpayco\Payco\Model\ResourceModel\OrderEpayco\CollectionFactory::class);
+        $orderEpayco = $collectionFactory->create();
         if(isset($_GET['ref_payco'])){
             $ref_payco = $_GET['ref_payco'];
 
-            $this->_curl->get("https://secure.epayco.co/validation/v1/reference/" . $ref_payco);
+            $this->_curl->get("https://eks-checkout-service.epayco.io/validation/v1/reference/" . $ref_payco);
             $response = $this->_curl->getBody();
             $dataTransaction = json_decode($response);
 
             if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
-                $orderId = (Integer)$dataTransaction->data->x_extra1;
-                $code = $dataTransaction->data->x_cod_response;
-                $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-                if($code == 1){
-                    if($order->getState() != "canceled"  ){
-                        $order->setState(Order::STATE_PROCESSING, true);
-                        $order->setStatus(Order::STATE_PROCESSING, true);
-                    }
-                } else if($code == 3){
-                    $order->setState($pendingOrderState, true);
-                    $order->setStatus($pendingOrderState, true);
-                } else if($code == 2 ||
-                    $code == 4 ||
-                    $code == 6 ||
-                    $code == 9 ||
-                    $code == 10 ||
-                    $code == 11
-                ){
-                    if($order->getState() == "pending" || $order->getState() == "new" ){
-                        $this->uploadInventory($orderId);
-                    }
-                    $order->setState(Order::STATE_CANCELED, true);
-                    $order->setStatus(Order::STATE_CANCELED, true);
-                } else if($code == 12)  {
-                    if($order->getState() == "pending" || $order->getState() == "new"){
-                        $this->uploadInventory($orderId);
-                    }
-                    $order->setState(Order::STATUS_FRAUD, true);
-                    $order->setStatus(Order::STATUS_FRAUD, true);
-                }
-
                 try{
-                    $orderRepository->save($order);
+                    $orderId = (Integer)$dataTransaction->data->x_extra1;
+                    $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
+                    $code = $dataTransaction->data->x_cod_response;
+                    $x_ref_payco = $dataTransaction->data->x_ref_payco;
+                    //$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+                    $order = $orderRepository->get($orderId);
+                    if($code == 1){
+                        if($order->getState() != "canceled"  ){
+                            $order->setState(Order::STATE_PROCESSING, true);
+                            $order->setStatus(Order::STATE_PROCESSING, true);
+                            foreach ($transaction as $item) {
+                                $item->delete();
+                            } 
+                            $orderRepository->save($order);
+                        }
+                    } else if($code == 3){
+                        $order->setState($pendingOrderState, true);
+                        $order->setStatus($pendingOrderState, true);
+                        foreach ($transaction as $item) {
+                            $item->setData('ref_payco', $x_ref_payco);
+                            $item->setData('status', 'pending');
+                            $item->save(); 
+                        }
+                        $orderRepository->save($order);
+                    } else if($code == 2 ||
+                        $code == 4 ||
+                        $code == 6 ||
+                        $code == 9 ||
+                        $code == 10 ||
+                        $code == 11
+                    ){
+                        if($order->getState() == "pending" || 
+                            $order->getState() == "pending_payment" || 
+                            $order->getState() == "new" ){
+                            $validate = $this->uploadStatusOrder($objectManager,$orderId);
+                            if($validate){
+                                $order->setState(Order::STATE_CANCELED, true);
+                                $order->setStatus(Order::STATE_CANCELED, true);
+                                $this->uploadInventory($objectManager,$stockRegistry,$order,$orderId);
+                                $orderRepository->save($order);
+                            }
+                        }
+                    } else if($code == 12)  {
+                        if($order->getState() == "pending" || 
+                            $order->getState() == "pending_payment" || 
+                            $order->getState() == "new" ){
+                            $validate = $this->uploadStatusOrder($objectManager,$orderId);
+                            if($validate){
+                                $order->setState(Order::STATUS_FRAUD, true);
+                                $order->setStatus(Order::STATUS_FRAUD, true);
+                                $this->uploadInventory($objectManager,$stockRegistry,$order,$orderId);
+                                $orderRepository->save($order);
+                            }
+                        }
+                    }  
                 } catch(\Exception $e){
                     if($urlRedirect != ''){
                         return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
@@ -163,7 +191,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $p_key = trim($scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
             $signature  = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
             $orderId = (Integer)$x_extra1;
-            $order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+            //$order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+            $order = $orderRepository->get($orderId);
             $x_test_request = trim($_REQUEST['x_test_request']);
             $isTestTransaction = $x_test_request == 'TRUE' ? "yes" : "no";
             $isTestMode = $isTestTransaction == "yes" ? "true" : "false";
@@ -194,56 +223,76 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             }
 
             if($x_signature == $signature && $validation){
-                $x_cod_transaction_state =trim($_REQUEST['x_cod_transaction_state']);
-                $code = (Integer)$x_cod_transaction_state;
-
-                if($code == 1){
-                    if($order->getState() != "canceled"  ){
-                        $order->setState(Order::STATE_PROCESSING, true);
-                        $order->setStatus(Order::STATE_PROCESSING, true);
-                    }
-                } else if($code == 3){
-                    $order->setState($pendingOrderState, true);
-                    $order->setStatus($pendingOrderState, true);
-                } else if($code == 2 ||
-                    $code == 4 ||
-                    $code == 6 ||
-                    $code == 9 ||
-                    $code == 10 ||
-                    $code == 11
-                ){
-                    if($order->getState() == "pending" || $order->getState() == "new" ){
-                        $this->uploadInventory($orderId);
-                    }
-                    $order->setState(Order::STATE_CANCELED, true);
-                    $order->setStatus(Order::STATE_CANCELED, true);
-                } else if($code == 12)  {
-                    if($order->getState() == "pending" || $order->getState() == "new" ){
-                        $this->uploadInventory($orderId);
-                    }
-                    $order->setState(Order::STATUS_FRAUD, true);
-                    $order->setStatus(Order::STATUS_FRAUD, true);
-                }
-
                 try{
-                    $order->save();
+                    $x_cod_transaction_state =trim($_REQUEST['x_cod_transaction_state']);
+                    $code = (Integer)$x_cod_transaction_state;
+                    $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
+                    if($code == 1){
+                        if($order->getState() != "canceled"  ){
+                            $order->setState(Order::STATE_PROCESSING, true);
+                            $order->setStatus(Order::STATE_PROCESSING, true);
+                            foreach ($transaction as $item) {
+                            $item->delete();
+                            } 
+                            $orderRepository->save($order);
+                        }
+                    } else if($code == 3){
+                        $order->setState($pendingOrderState, true);
+                        $order->setStatus($pendingOrderState, true);
+                        foreach ($transaction as $item) {
+                            $item->setData('ref_payco', $x_ref_payco);
+                            $item->setData('status', 'pending');
+                            $item->save(); 
+                        }
+                        $orderRepository->save($order);
+                    } else if($code == 2 ||
+                        $code == 4 ||
+                        $code == 6 ||
+                        $code == 9 ||
+                        $code == 10 ||
+                        $code == 11
+                    ){
+                        if($order->getState() == "pending" || 
+                            $order->getState() == "pending_payment" || 
+                            $order->getState() == "new" ){
+                            $validate = $this->uploadStatusOrder($objectManager,$orderId);
+                            if($validate){
+                                $order->setState(Order::STATE_CANCELED, true);
+                                $order->setStatus(Order::STATE_CANCELED, true);
+                                $this->uploadInventory($objectManager,$stockRegistry,$order,$orderId);
+                                $orderRepository->save($order);
+                            }
+                        }
+                    } else if($code == 12)  {
+                        if($order->getState() == "pending" || 
+                            $order->getState() == "pending_payment" || 
+                            $order->getState() == "new" ){
+                            $validate = $this->uploadStatusOrder($objectManager,$orderId);
+                            if($validate){
+                                $order->setState(Order::STATUS_FRAUD, true);
+                                $order->setStatus(Order::STATUS_FRAUD, true);
+                                $this->uploadInventory($objectManager,$stockRegistry,$order,$orderId);
+                                $orderRepository->save($order);
+                            }
+                        }
+                    }
                 } catch(\Exception $e){
-                    return $result->setData(['Error No se creo la orden']);
+                    return $result->setData(['Error No se creo la orden'+ $e->getMessage()]);
                 }
 
                 return $result->setData(['confirmed order']);
             }
             else{
-                if($order->getState() != "canceled" ){
-                    $this->uploadStatusOrder($x_extra2);
-                    $this->uploadInventory($orderId);
-                    $order->setState(Order::STATE_CANCELED, true);
-                    $order->setStatus(Order::STATE_CANCELED, true);
-                }
                 try{
-                    $order->save();
+                    if($order->getState() != "canceled" ){
+                        $order->setState(Order::STATE_CANCELED, true);
+                        $order->setStatus(Order::STATE_CANCELED, true);
+                        $this->uploadStatusOrder($objectManager,$orderId);
+                        $this->uploadInventory($objectManager,$stockRegistry,$order,$orderId);
+                        $orderRepository->save($order);
+                    }
                 } catch(\Exception $e){
-                    return $result->setData(['Error No se creo la orden']);
+                    return $result->setData(['Error No se creo la orden '+ $e->getMessage()]);
                 }
                 return $result->setData(['no entro a la signature']);
             }
@@ -252,50 +301,67 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         }
     }
 
-    public function uploadInventory($orderId){
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-        $connection = $resource->getConnection();
-        $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-        $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
-        $result = $connection->fetchAll($sql);
-        if($result != null){
-            foreach($result as $sku){
-                $sku  = $sku["sku"];
-                $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
-                $query = $connection->fetchAll($sql_);
-                if($query != null){
-                    foreach($query as $productInventory){
-                        $queryUpload = $connection->update(
-                            'inventory_reservation',
-                            ['quantity' => '0.0000'],
-                            ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
-                        );
+    public function uploadInventory($objectManager,$stockRegistry,$order, $orderId){
+        try{
+            /*
+            foreach ($order->getAllItems() as $item) {
+                $sku = $item->getSku();
+                $qty = $item->getQtyOrdered();
+                $qty_ = $item->getQtyCanceled();
+                $stockItem = $stockRegistry->getStockItemBySku($sku);
+                $stockItem->setQty($stockItem->getQty() + $qty);
+                $stockItem->setIsInStock(true);
+
+                //$stockRegistry->updateStockItemBySku($sku, $stockItem);
+                break;
+            }
+            */
+            $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+            $connection = $resource->getConnection();
+            $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+            $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
+            $result = $connection->fetchAll($sql);
+            if($result != null){
+                foreach($result as $sku){
+                    $sku  = $sku["sku"];
+                    $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
+                    $query = $connection->fetchAll($sql_);
+                    if($query != null){
+                        foreach($query as $productInventory){
+                            $queryUpload = $connection->update(
+                                'inventory_reservation',
+                                ['quantity' => '0.0000'],
+                                ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
+                            );
+                        }
                     }
                 }
             }
+        } catch(\Exception $e){
+           // return $result->setData(['Error actualizando inventario '+ $e->getMessage()]);
         }
     }
 
-    public function uploadStatusOrder($increment_id){
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-        $connection = $resource->getConnection();
-        $connection->update(
-            'sales_order',
-            ['state' => 'canceled'],
-            ['increment_id = ?' => $increment_id]
-        );
-        $connection->update(
-            'sales_order',
-            ['status' => 'canceled'],
-            ['increment_id = ?' => $increment_id]
-        );
-        $connection->update(
-            'sales_order_grid',
-            ['status' => 'canceled'],
-            ['increment_id = ?' => $increment_id]
-        );
+    public function uploadStatusOrder($objectManager,$orderId){
+        try{
+            $collectionFactory = $objectManager->get(\PagoEpayco\Payco\Model\ResourceModel\OrderEpayco\CollectionFactory::class);
+            $orderEpayco = $collectionFactory->create();
+            $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
+            foreach ($transaction as $item) {
+                $retry = (int)$item->getData('retry');
+                if($retry<=0){
+                    $item->delete(); 
+                    return true;
+                }else{
+                    $retry -= 1;
+                    $item->setData('retry', $retry);
+                    $item->save(); 
+                    return false;
+                }
+            } 
+        } catch(\Exception $e){
+            //return $result->setData(['Error actualizando registro '+ $e->getMessage()]);
+        }
     }
 
 }
