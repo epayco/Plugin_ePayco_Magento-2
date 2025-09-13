@@ -32,7 +32,6 @@ class OrderConsult
             foreach ($collection as $item) {
                 $retry = (int)$item->getData('retry');
                 if($retry<=0){
-                    //$item->delete(); 
                     $orderId = (int)$item->getData('order');
                     if($orderId){
                         $order = $orderRepository->get($orderId);
@@ -92,6 +91,7 @@ class OrderConsult
                     $item->save(); 
                 } 
             }
+            $this->logger->info( 'corn actualizacion de ordenes epayco ejecutado');
         return $this;
         } catch (\Exception $e) {
             $this->logger->error('ErrorepaycoCron: ' . $e->getMessage());
