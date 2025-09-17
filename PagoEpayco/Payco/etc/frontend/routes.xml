@@ -7,5 +7,8 @@
         <route id="epayco" frontName="epayco">
             <module name="PagoEpayco_Payco"/>
         </route>
+        <route id="payco" frontName="payco">
+            <module name="PagoEpayco_Payco"/>
+        </route>
     </router>
 </config>
