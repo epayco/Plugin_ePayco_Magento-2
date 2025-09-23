@@ -44,7 +44,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         \Magento\Framework\App\Action\Context $context,
         \Magento\Framework\View\Result\PageFactory $resultPageFactory,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
-        \Magento\Framework\HTTP\Client\Curl $curl,
+        \Magento\Framework\HTTP\Client\Curl $curl
     ) {
         $this->resultPageFactory = $resultPageFactory;
         $this->resultJsonFactory = $resultJsonFactory;
@@ -95,7 +95,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         if(isset($_GET['ref_payco'])){
             $ref_payco = $_GET['ref_payco'];
 
-            $this->_curl->get("https://eks-checkout-service.epayco.io/validation/v1/reference/" . $ref_payco);
+            $this->_curl->get("https://secure.epayco.co/validation/v1/reference/" . $ref_payco);
             $response = $this->_curl->getBody();
             $dataTransaction = json_decode($response);
 
@@ -105,8 +105,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                     $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
                     $code = $dataTransaction->data->x_cod_response;
                     $x_ref_payco = $dataTransaction->data->x_ref_payco;
-                    //$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-                    $order = $orderRepository->get($orderId);
+                    $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+                    //$order = $orderRepository->get($orderId);
                     if($code == 1){
                         if($order->getState() != "canceled"  ){
                             $order->setState(Order::STATE_PROCESSING, true);
@@ -191,8 +191,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $p_key = trim($scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
             $signature  = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
             $orderId = (Integer)$x_extra1;
-            //$order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-            $order = $orderRepository->get($orderId);
+            $order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+            //$order = $orderRepository->get($orderId);
             $x_test_request = trim($_REQUEST['x_test_request']);
             $isTestTransaction = $x_test_request == 'TRUE' ? "yes" : "no";
             $isTestMode = $isTestTransaction == "yes" ? "true" : "false";

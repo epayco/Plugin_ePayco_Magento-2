@@ -31,37 +31,44 @@ class OrderConsult
 
             foreach ($collection as $item) {
                 $retry = (int)$item->getData('retry');
-                if($retry<=0){
-                    $orderId = (int)$item->getData('order');
-                    if($orderId){
-                        $order = $orderRepository->get($orderId);
-                        $curl->get("http://eks-cms-backend-platforms-service.epayco.io/transaction/" .$item->getData('ref_payco'));
-                        $response = $curl->getBody();
-                        $dataTransaction = json_decode($response);
-                        if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
-                            $code = $dataTransaction->data->log->x_cod_response;
-                            $x_ref_payco = $dataTransaction->data->log->x_ref_payco;
-                            $pendingOrderState = Order::STATE_PENDING_PAYMENT;
-                            if($code == 1){
-                                if($order->getState() != "canceled"  ){
-                                    $order->setState(Order::STATE_PROCESSING, true);
-                                    $order->setStatus(Order::STATE_PROCESSING, true);
-                                    $orderRepository->save($order);
-                                }
-                            } else if($code == 3){
-                                $order->setState($pendingOrderState, true);
-                                $order->setStatus($pendingOrderState, true);
-                                $item->setData('ref_payco', $x_ref_payco);
-                                $item->setData('status', 'pending');
-                                $item->save(); 
+                $orderId = (int)$item->getData('order');
+                $refpayco = $item->getData('ref_payco');
+                if($orderId && $refpayco){
+                    //$order = $orderRepository->get($orderId);
+                    $url = "https://cms.epayco.co/transaction/" .$refpayco;
+                    $curl->setOption(CURLOPT_FOLLOWLOCATION, true);
+                    $curl->get($url);
+                    $response = $curl->getBody();
+                    $dataTransaction = json_decode($response);
+                    if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
+                        $transactionData = $dataTransaction->data; 
+                        $x_ref_payco = $transactionData->referencePayco;
+                        $status = $transactionData->status;
+                        $pendingOrderState = Order::STATE_PENDING_PAYMENT;
+                        $orderId = (Integer)$transactionData->log->x_extra1 ?? $orderId;
+                        $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+
+                        if($status == 'Aceptada' || $status == 'aceptada'){
+                            if($order->getState() != "canceled"  ){
+                                $order->setState(Order::STATE_PROCESSING, true);
+                                $order->setStatus(Order::STATE_PROCESSING, true);
                                 $orderRepository->save($order);
-                            } else if($code == 2 ||
-                                $code == 4 ||
-                                $code == 6 ||
-                                $code == 9 ||
-                                $code == 10 ||
-                                $code == 11
-                            ){
+                                $item->delete();
+                            }
+                        } else if($status == 'Pendiente' || $status == 'pending'){
+                            $order->setState($pendingOrderState, true);
+                            $order->setStatus($pendingOrderState, true);
+                            $item->setData('ref_payco', $x_ref_payco);
+                            $item->setData('status', 'pending');
+                            $item->save(); 
+                            $orderRepository->save($order);
+                        } else if($status == 'Rechazada' ||
+                            $status == 'Fallida' ||
+                            $status == 'caducada' ||
+                            $status == 'abandonada' ||
+                            $status == 'Cancelada'
+                        ){
+                            if($retry<=0){
                                 if($order->getState() == "pending" || 
                                     $order->getState() == "pending_payment" || 
                                     $order->getState() == "new" ){
@@ -70,26 +77,26 @@ class OrderConsult
                                     $this->uploadInventory($objectManager,$orderId);
                                     $orderRepository->save($order);
                                 }
-                            } else if($code == 12)  {
-                                if($order->getState() == "pending" || 
-                                    $order->getState() == "pending_payment" || 
-                                    $order->getState() == "new" ){
-                                    $order->setState(Order::STATUS_FRAUD, true);
-                                    $order->setStatus(Order::STATUS_FRAUD, true);
-                                    $this->uploadInventory($objectManager,$orderId);
-                                    $orderRepository->save($order);
-                                }
+                            }else{
+                                $retry -= 1;
+                                $item->setData('retry', $retry);
+                                $item->save(); 
                             }
-                            $item->delete();
-                            $this->logger->info(  'ID: ' . $item->getId() . ' - ref_payco: ' . $x_ref_payco.' - order_status: ' . $order->getState() . ' - response '. $code);
-
+                        } else if($status == 12)  {
+                            if($order->getState() == "pending" || 
+                                $order->getState() == "pending_payment" || 
+                                $order->getState() == "new" ){
+                                $order->setState(Order::STATUS_FRAUD, true);
+                                $order->setStatus(Order::STATUS_FRAUD, true);
+                                $this->uploadInventory($objectManager,$orderId);
+                                $orderRepository->save($order);
+                                $item->delete();
+                                echo 'ID: ' . $item->getId() . ' - ref_payco: ' . $x_ref_payco.' - order_status: ' . $order->getState() . ' - response '. $status .'<br>';
+                            }
                         }
+                        
                     }
-                }else{
-                    $retry -= 1;
-                    $item->setData('retry', $retry);
-                    $item->save(); 
-                } 
+                }
             }
             $this->logger->info( 'corn actualizacion de ordenes epayco ejecutado');
         return $this;
