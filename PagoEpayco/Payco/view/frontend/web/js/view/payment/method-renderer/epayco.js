@@ -154,7 +154,7 @@ define(
                         autoclick: "true",
                         ip: ip,
                         test: test.toString(),
-                        //checkout_version:1
+                        checkout_version:2
                     };
                     console.log(data)
                     const apiKey = window.checkoutConfig.payment.epayco.payco_public_key.trim();
