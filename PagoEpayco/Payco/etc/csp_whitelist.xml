@@ -1,21 +1,21 @@
 <?xml version="1.0"?>
-<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
     <policies>
         <policy id="script-src">
             <values>
-                <value id="epayco" type="host">https://checkout.epayco.co/checkout.js</value>
-                <value id="cmsepayco" type="host">https://cms.epayco.co</value>
+                <value id="epayco-checkout" type="host">https://checkout.epayco.co/checkout.js</value>
+                <value id="epayco-cms" type="host">https://cms.epayco.co</value>
+                <value id="secure-epayco" type="host">https://secure.epayco.c</value>
             </values>
         </policy>
+
         <policy id="connect-src">
             <values>
-                <value id="apifyprivate" type="host">https://apify-private.epayco.co</value>
-            </values>
-            <values>
-                <value id="secureepayco" type="host">https://secure.epayco.co</value>
-            </values>
-            <values>
-                <value id="epaycosession" type="host">https://cms.epayco.co/checkout/payment/session</value>
+                <value id="secure-epayco" type="host">https://checkout.epayco.co</value>
+                <value id="apify-private-epayco" type="host">https://apify-private.epayco.co</value>
+                <value id="epayco-session" type="host">https://cms.epayco.co</value>
+                <value id="secure-epayco-checkout" type="host">https://secure.epayco.co</value>
             </values>
         </policy>
     </policies>
