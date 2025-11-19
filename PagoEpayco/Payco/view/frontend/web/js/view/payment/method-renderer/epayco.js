@@ -17,7 +17,7 @@ define(
         'Magento_Checkout/js/model/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Checkout/js/action/place-order',
-        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod.js'
+        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod-v2.js'
     ],
     function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer,placeOrderService,fullScreenLoader,placeOrderAction,ePayco) {
         'use strict';
@@ -127,69 +127,67 @@ define(
                     if(checkoutConfig.payment.epayco.payco_test === "1"){
                         var test = true;
                     }
+                    let typeCheckout = checkoutConfig.payment.epayco.vertical_cs === 'true' ? 'standard' : 'onepage';
+                    let date_ = new Date();
                     var data={
                         //Parametros compra (obligatorio)
                         name: items,
                         description: items,
-                        invoice: invoice,
+                        invoice: invoice+'_'+date_.getTime(),
                         currency: currency,
-                        amount: amount.toString(),
-                        tax_base: tax_base.toString(),
-                        tax: taxes.toString(),
+                        amount: parseFloat(amount),
+                        taxBase: parseFloat(tax_base),
+                        tax: parseFloat(taxes),
                         country: country,
                         lang: checkoutConfig.payment.epayco.language_cs,
                         //Onpage='false' - Standard='true'
-                        external: checkoutConfig.payment.epayco.vertical_cs,
+                        //external: checkoutConfig.payment.epayco.vertical_cs,
                         //Atributos opcionales
-                        extra1: data.order_id,
-                        confirmation:url.build("confirmation/epayco/index"),
-                        response: url.build("confirmation/epayco/index"),
+                        //extra1: data.order_id,
+                        extras:{
+                            extra1: data.order_id,
+                        },
+                        //confirmation:url.build("confirmation/epayco/index"),
+                        //response: url.build("confirmation/epayco/index"),
+                        confirmation:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
+                        response:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
+                        forceResponse:false,//no mostrar el detalle de la transaccion
+                        noRedirectOnClose: false,
+                        uniqueTransactionPerBill:false,
                         //Atributos cliente
-                        email_billing:email,
-                        name_billing: name_billing,
-                        address_billing: address_billing,
-                        type_doc_billing: docType,
-                        mobilephone_billing: mobile,
-                        number_doc_billing: doc,
-                        autoclick: "true",
+                        billing:{
+                            email: email,
+                            name: name_billing,
+                            address: address_billing,
+                            mobilePhone: mobile,
+                            typeDoc: docType,
+                            numberDoc: doc,
+                        },
+                        //email_billing:email,
+                        //name_billing: name_billing,
+                        //address_billing: address_billing,
+                        //type_doc_billing: docType,
+                        //mobilephone_billing: mobile,
+                        //number_doc_billing: doc,
+                        method: "POST",
+                        autoClick:true,
                         ip: ip,
-                        test: test.toString(),
-                        //checkout_version:1
+                        test: test,
+                        checkout_version:"2",
+                        extrasEpayco:{
+                            extra5:"P27"
+                        }
                     };
-                    console.log(data)
+                    //console.log("data",data)
                     const apiKey = window.checkoutConfig.payment.epayco.payco_public_key.trim();
                     const privateKey = window.checkoutConfig.payment.epayco.payco_private_key.trim();
-                    var handler = window.ePayco.checkout.configure({
+                    /*var handler = window.ePayco.checkout.configure({
                         key: apiKey,
                         test:test
-                    })
-                    fullScreenLoader.stopLoader();
-                    handler.open(data);
-                    /*
-                    if(localStorage.getItem("invoicePayment") == null){
-                        localStorage.setItem("invoicePayment", invoice);
-                        _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
-                    }else{
-                        if(localStorage.getItem("invoicePayment") != invoice){
-                            localStorage.removeItem("invoicePayment");
-                            localStorage.setItem("invoicePayment", invoice);
-                            _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false)
-                        }else{
-                            var sessionPayment = localStorage.getItem("sessionPayment");
-                            if(sessionPayment){
-                                localStorage.removeItem("sessionPayment");
-                                const handlerNew = window.ePayco.checkout.configure({
-                                    sessionId: sessionPayment,
-                                    external: external,
-                                });
-                                fullScreenLoader.stopLoader();
-                                handlerNew.openNew()
-                            }else{
-                               _this.makePayment(privateKey,apiKey,data, data.external == 'true'?true:false) 
-                            }
-                        }
-                    }
-                    */
+                    })*/
+                    //fullScreenLoader.stopLoader();
+                    //handler.open(data);
+                    _this.makePayment(privateKey,apiKey,data, typeCheckout, test)
                     //window.location.replace(url.build('checkout/onepage/success'));
                 }else{
                     fullScreenLoader.stopLoader();
@@ -231,39 +229,71 @@ define(
                 };
                 document.head.appendChild(script);
             },
-            makePayment:  function (privatekey, apikey, info, external) {
-                const headers = { 'Content-Type': 'application/json' } ;
-                headers['privatekey'] = privatekey;
-                headers['apikey'] = apikey;
-                var payment = function (){
-                    return  fetch("http://eks-cms-backend-platforms-service.epayco.io/checkout/payment/session", {
-                        method: 'POST',
+            makePayment:  function (privatekey, apikey, info, external, test) {
+                const _this = this;
+                const headers = { "Content-Type": "application/json" };
+                const payment = function () {
+                    return fetch("https://eks-apify-service.epayco.io/payment/session/create", {
+                        method: "POST",
                         body: JSON.stringify(info),
                         headers
                     })
-                        .then(res =>  res.json())
-                        .catch(err => err);
-                }
-                payment()
+                    .then(res => res.json());
+                };
+                return _this.getBearerToken(privatekey, apikey)
+                    .then(token => {
+                        headers["Authorization"] = "Bearer " + token;
+                        return payment();
+                    })
                     .then(session => {
-                        if(session.data.sessionId != undefined){
+                        if (session.data && session.data.sessionId) {
                             localStorage.removeItem("sessionPayment");
                             localStorage.setItem("sessionPayment", session.data.sessionId);
                             const handlerNew = window.ePayco.checkout.configure({
                                 sessionId: session.data.sessionId,
-                                external: external,
+                                type: external,
+                                test: test,
                             });
                             fullScreenLoader.stopLoader();
-                            handlerNew.openNew()
+                            handlerNew.open();
+                        } else {
+                            fullScreenLoader.stopLoader();
+                            alert({
+                                content: $.mage.__('Sorry, something went wrong. Please try again later.')
+                            });
                         }
                     })
                     .catch(error => {
+                        console.error(error);
                         fullScreenLoader.stopLoader();
                         alert({
                             content: $.mage.__('Sorry, something went wrong. Please try again later.')
                         });
-                        error.message;
                     });
+            },
+            getBearerToken: function (priv,pub) {
+                const cacheKey = 'epaycoBearer';
+                const expKey = cacheKey + ':exp';
+                const cached = localStorage.getItem(cacheKey);
+                const exp = parseInt(localStorage.getItem(expKey) || '0', 10);
+                if (cached && Date.now() < exp) return Promise.resolve(cached);
+
+                return fetch("https://eks-apify-service.epayco.io/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Basic " + btoa(`${pub}:${priv}`)
+                    }
+                })
+                .then(r => r.json())
+                .then(json => {
+                    const token = json.token || json.access_token;
+                    if (!token) throw new Error("No se recibió token");
+                    const ttlMs = (14 * 60 * 1000) - 15000;
+                    localStorage.setItem(cacheKey, token);
+                    localStorage.setItem(expKey, String(Date.now() + ttlMs));
+                    return token;
+                });
             },
             afterPlaceOrder: function () {
                 this.renderCheckout();
