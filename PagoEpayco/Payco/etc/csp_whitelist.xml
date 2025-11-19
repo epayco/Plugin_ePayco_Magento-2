@@ -4,8 +4,8 @@
     <policies>
         <policy id="script-src">
             <values>
-                <value id="epayco-checkout" type="host">https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod_v1.js</value>
-                <value id="epayco-cms" type="host">http://eks-cms-backend-platforms-service.epayco.io</value>
+                <value id="epayco-checkout" type="host">https://epayco-checkout-testing.s3.amazonaws.com</value>
+                <value id="apify-ms" type="host">https://eks-apify-service.epayco.io</value>
                 <value id="secure-epayco" type="host">https://eks-checkout-service.epayco.io</value>
             </values>
         </policy>
@@ -15,7 +15,7 @@
                 <value id="epayco-create-transaction" type="host">https://eks-ms-checkout-transaction-service.epayco.io</value>
                 <value id="apify-private-epayco" type="host">https://eks-apify-private-service.epayco.io</value>
                 <value id="secure-epayco" type="host">https://epayco-checkout-testing.s3.amazonaws.com</value>
-                <value id="epayco-session" type="host">http://eks-cms-backend-platforms-service.epayco.io</value>
+                <value id="epayco-apify" type="host">https://eks-apify-service.epayco.io</value>
                 <value id="secure-epayco" type="host">https://eks-checkout-service.epayco.io</value>
             </values>
         </policy>
