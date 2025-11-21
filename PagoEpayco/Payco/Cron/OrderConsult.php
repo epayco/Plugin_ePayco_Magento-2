@@ -42,7 +42,7 @@ class OrderConsult
             }
 
             // Aplica el filtro para registros pendientes y started
-            $collection->addFieldToFilter('status', ['in' => ['pending', 'started']]);
+            $collection->addFieldToFilter('status', ['in' => ['pending']]);
             
             $this->logger->info('Total registros con status pending o started: ' . $collection->getSize());
             
