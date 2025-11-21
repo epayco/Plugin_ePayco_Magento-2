@@ -130,12 +130,12 @@ define(
                         var test = true;
                     }
                     let typeCheckout = checkoutConfig.payment.epayco.vertical_cs === 'true' ? 'standard' : 'onepage';
-                    let date_ = new Date();
+                    //let date_ = new Date().getTime();
                     var data={
                         //Parametros compra (obligatorio)
                         name: items,
                         description: items,
-                        invoice: invoice+'_'+date_.getTime(),
+                        invoice: invoice,
                         currency: currency,
                         amount: parseFloat(amount),
                         taxBase: parseFloat(tax_base),
@@ -152,8 +152,6 @@ define(
                         },
                         confirmation:url.build("confirmation/epayco/index"),
                         response: url.build("confirmation/epayco/index"),
-                        //confirmation:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
-                        //response:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
                         forceResponse:false,//no mostrar el detalle de la transaccion
                         noRedirectOnClose: false,
                         uniqueTransactionPerBill:false,
