@@ -44,7 +44,8 @@ class OrderConsult extends Action
                // echo 'ID: ' . $item->getId() . ' - ref_payco: ' . $refpayco .'<br>'; 
                 if($orderId && $refpayco){
                     //$order = $orderRepository->get($orderId);
-                    $url = "https://cms.epayco.co/transaction/" .$refpayco;
+                    $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
+                    $url = "http://eks-cms-backend-platforms-service.epayco.io/transaction/" .$refpayco;
                     $curl->setOption(CURLOPT_FOLLOWLOCATION, true);
                     $curl->get($url);
                     $response = $curl->getBody();
@@ -54,8 +55,6 @@ class OrderConsult extends Action
                         $x_ref_payco = $transactionData->referencePayco;
                         $status = $transactionData->status;
                         $pendingOrderState = Order::STATE_PENDING_PAYMENT;
-                        $orderId = (Integer)$transactionData->log->x_extra1??$orderId;
-                        $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
                         if($status == 'Aceptada' || $status == 'aceptada'){
                             if($order->getState() != "canceled"  ){
                                 $order->setState(Order::STATE_PROCESSING, true);
