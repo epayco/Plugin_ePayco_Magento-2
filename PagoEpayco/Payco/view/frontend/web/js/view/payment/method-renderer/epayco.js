@@ -179,7 +179,8 @@ define(
                         checkout_version:"2",
                         extrasEpayco:{
                             extra5:"P27"
-                        }
+                        },
+                        checkout_version:2
                     };
                     //console.log("data",data)
                     const apiKey = window.checkoutConfig.payment.epayco.payco_public_key.trim();
