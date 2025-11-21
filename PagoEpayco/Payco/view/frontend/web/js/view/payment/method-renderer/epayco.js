@@ -94,9 +94,11 @@ define(
                     var ip = this.getCustomerIp();
                     var checkoutConfig= window.checkoutConfig;
                     let stringNumber = "000000000";
+                    let increment_id = data.increment_id;
                     let number = parseInt(stringNumber, 10);
                     let result = number + data.order_id;
-                    let invoice = result.toString().padStart(9, '0');
+                    //let invoice = result.toString().padStart(9, '0');
+                    let invoice = increment_id;
                     localStorage.setItem("epayco_invoice", JSON.stringify(data));
                     var shippingAddress = quote.shippingAddress();
                     var billingAddress = quote.billingAddress();
@@ -128,12 +130,12 @@ define(
                         var test = true;
                     }
                     let typeCheckout = checkoutConfig.payment.epayco.vertical_cs === 'true' ? 'standard' : 'onepage';
-                    let date_ = new Date();
+                    //let date_ = new Date().getTime();
                     var data={
                         //Parametros compra (obligatorio)
                         name: items,
                         description: items,
-                        invoice: invoice+'_'+date_.getTime(),
+                        invoice: invoice,
                         currency: currency,
                         amount: parseFloat(amount),
                         taxBase: parseFloat(tax_base),
@@ -146,11 +148,10 @@ define(
                         //extra1: data.order_id,
                         extras:{
                             extra1: data.order_id,
+                            extra2: getQuoteId
                         },
-                        //confirmation:url.build("confirmation/epayco/index"),
-                        //response: url.build("confirmation/epayco/index"),
-                        confirmation:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
-                        response:"https://webhook.site/8a97f9af-02fe-4e95-a004-b4ae5f2f7843",
+                        confirmation:url.build("confirmation/epayco/index"),
+                        response: url.build("confirmation/epayco/index"),
                         forceResponse:false,//no mostrar el detalle de la transaccion
                         noRedirectOnClose: false,
                         uniqueTransactionPerBill:false,

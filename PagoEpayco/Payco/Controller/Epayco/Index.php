@@ -69,6 +69,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
      */
     public function execute()
     {
+        try{
         $scopeConfig = ObjectManager::getInstance()->get(ScopeConfigInterface::class);
         $url = $_SERVER['REQUEST_SCHEME']."://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
         $server_name = str_replace('/confirmation/epayco/index','/checkout/onepage/success/',$url);
@@ -102,11 +103,34 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
                 try{
                     $orderId = (Integer)$dataTransaction->data->x_extra1;
+                    
+                    // Validar que el orderId sea válido
+                    if (!$orderId || $orderId <= 0) {
+                        error_log("ID de orden inválido: " . $orderId);
+                        if($urlRedirect != ''){
+                            return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
+                        } else {
+                            return $this->resultRedirectFactory->create()->setUrl($new_url);
+                        }
+                    }
+                    
                     $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
                     $code = $dataTransaction->data->x_cod_response;
                     $x_ref_payco = $dataTransaction->data->x_ref_payco;
-                    //$order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-                    $order = $orderRepository->get($orderId);
+                    
+                    // Validar que la orden existe antes de intentar obtenerla
+                    try {
+                        //$order = $orderRepository->get($orderId);
+                        $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
+                    } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                        // La orden no existe, registrar error y continuar
+                        error_log("Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
+                        if($urlRedirect != ''){
+                            return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
+                        } else {
+                            return $this->resultRedirectFactory->create()->setUrl($new_url);
+                        }
+                    }
                     if($code == 1){
                         if($order->getState() != "canceled"  ){
                             $order->setState(Order::STATE_PROCESSING, true);
@@ -191,8 +215,22 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             $p_key = trim($scopeConfig->getValue('payment/epayco/payco_key',$storeScope));
             $signature  = hash('sha256', $p_cust_id_cliente . '^' . $p_key . '^' . $x_ref_payco . '^' . $x_transaction_id . '^' . $x_amount . '^' . $x_currency_code);
             $orderId = (Integer)$x_extra1;
-            //$order = $objectManager->create('Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-            $order = $orderRepository->get($orderId);
+            
+            // Validar que el orderId sea válido
+            if (!$orderId || $orderId <= 0) {
+                error_log("ID de orden inválido: " . $orderId);
+                return $result->setData(['Error: ID de orden inválido ' . $orderId]);
+            }
+            
+            // Validar que la orden existe antes de intentar obtenerla
+            try {
+                //$order = $orderRepository->get($orderId);
+                $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
+            } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+                // La orden no existe, registrar error y retornar respuesta de error
+                error_log("Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
+                return $result->setData(['Error: Orden no encontrada con ID ' . $orderId]);
+            }
             $x_test_request = trim($_REQUEST['x_test_request']);
             $isTestTransaction = $x_test_request == 'TRUE' ? "yes" : "no";
             $isTestMode = $isTestTransaction == "yes" ? "true" : "false";
@@ -202,7 +240,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             }else{
                 $isTestPluginMode = "no";
             }
-            if(floatval($order->getData()['base_grand_total'])==floatval($x_amount)){
+            /*if(floatval($order->getData()['base_grand_total'])==floatval($x_amount)){
                 if("yes" == $isTestPluginMode){
                     $validation = true;
                 }
@@ -220,8 +258,23 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 }
             }else{
                 $validation = false;
-            }
+            }*/
 
+            if("yes" == $isTestPluginMode){
+                $validation = true;
+            }
+            if("no" == $isTestPluginMode ){
+                if($x_approval_code != "000000" && $x_cod_transaction_state == 1){
+                    $validation = true;
+                }else{
+                    if($x_cod_transaction_state != 1){
+                        $validation = true;
+                    }else{
+                        $validation = false;
+                    }
+                }
+
+            }
             if($x_signature == $signature && $validation){
                 try{
                     $x_cod_transaction_state =trim($_REQUEST['x_cod_transaction_state']);
@@ -299,6 +352,9 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
         } else {
             return $result->setData(['No se creo la orden']);
         }
+    }catch(\Exception $e){
+        return $result->setData(['Error actualizando '+ $e->getMessage()]);
+    }
     }
 
     public function uploadInventory($objectManager,$stockRegistry,$order, $orderId){

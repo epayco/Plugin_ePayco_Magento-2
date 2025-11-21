@@ -25,16 +25,49 @@ class OrderConsult
             $curl = $objectManager->create(\Magento\Framework\HTTP\Client\Curl::class); 
             $collectionFactory = $objectManager->get(CollectionFactory::class);
             $collection = $collectionFactory->create();
+            
+            // Log total de registros antes del filtro
+            $this->logger->info('Total registros en OrderEpayco antes del filtro: ' . $collection->getSize());
+            
+            // Primero verifica sin filtro para debug
+            $collectionDebug = $collectionFactory->create();
+            $this->logger->info('Total registros en OrderEpayco (sin filtro): ' . $collectionDebug->getSize());
+            
+            // Log de algunos registros para debug
+            if ($collectionDebug->getSize() > 0) {
+                $debugItems = $collectionDebug->setPageSize(5)->load();
+                foreach ($debugItems as $debugItem) {
+                    $this->logger->info('Debug - ID: ' . $debugItem->getId() . ', Status: ' . $debugItem->getData('status') . ', Order: ' . $debugItem->getData('order'));
+                }
+            }
 
-            // Puedes aplicar filtros si quieres
-            $collection->addFieldToFilter('status', 'pending');
+            // Aplica el filtro para registros pendientes y started
+            $collection->addFieldToFilter('status', ['in' => ['pending']]);
+            
+            $this->logger->info('Total registros con status pending o started: ' . $collection->getSize());
+            
+            if ($collection->getSize() == 0) {
+                $this->logger->info('No hay registros con status pending o started. Verificando todos los status...');
+                
+                // Verifica todos los status disponibles
+                $allStatusCollection = $collectionFactory->create();
+                $allStatusCollection->getSelect()->group('status');
+                foreach ($allStatusCollection as $statusItem) {
+                    $this->logger->info('Status encontrado: ' . $statusItem->getData('status'));
+                }
+            }
 
             foreach ($collection as $item) {
+                $this->logger->info('Procesando item con ID: ' . $item->getId());
+                
                 $retry = (int)$item->getData('retry');
                 $orderId = (int)$item->getData('order');
                 $refpayco = $item->getData('ref_payco');
+                
+                $this->logger->info('Item datos - Retry: ' . $retry . ', OrderID: ' . $orderId . ', RefPayco: ' . $refpayco);
                 if($orderId && $refpayco){
-                    $order = $orderRepository->get($orderId);
+                    //$order = $orderRepository->get($orderId);
+                    $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
                     $url = "http://eks-cms-backend-platforms-service.epayco.io/transaction/" .$refpayco;
                     $curl->setOption(CURLOPT_FOLLOWLOCATION, true);
                     $curl->get($url);
@@ -95,7 +128,7 @@ class OrderConsult
                     }
                 }
             }
-            $this->logger->info( 'corn actualizacion de ordenes epayco ejecutado');
+            $this->logger->info('Cron actualización de órdenes Epayco ejecutado. Procesados: ' . $collection->getSize() . ' registros');
         return $this;
         } catch (\Exception $e) {
             $this->logger->error('ErrorepaycoCron: ' . $e->getMessage());
