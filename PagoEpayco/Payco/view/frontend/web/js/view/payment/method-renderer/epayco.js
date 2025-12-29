@@ -46,7 +46,7 @@ define(
                             localStorage.setItem("epayco_quote_id", getQuoteId);
                             var data = localStorage.getItem("epayco_invoice");
                             if (data) {
-                                _this.onEpaycoSuccess(data, _this);
+                                _this.onEpaycoSuccess(data, _this, getQuoteId);
                             } else {
                                 fullScreenLoader.stopLoader();
                                 alert({
@@ -64,7 +64,7 @@ define(
                                 async: false,
                                 data:  { "order_id": getQuoteId },
                                 success: function(data) {
-                                    _this.onEpaycoSuccess(data, _this);
+                                    _this.onEpaycoSuccess(data, _this, getQuoteId);
                                 },
                                 error: function(error) {
                                     fullScreenLoader.stopLoader();
@@ -89,7 +89,7 @@ define(
                     console.log('error: ' + error);
                 }
             },
-            onEpaycoSuccess: function(data, _this){
+            onEpaycoSuccess: function(data, _this, getQuoteId){
                 if(data.success){
                     var ip = this.getCustomerIp();
                     var checkoutConfig= window.checkoutConfig;
