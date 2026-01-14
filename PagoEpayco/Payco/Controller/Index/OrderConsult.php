@@ -9,17 +9,20 @@ use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use PagoEpayco\Payco\Model\ResourceModel\OrderEpayco\CollectionFactory;
 use Magento\Sales\Model\Order;
-
+use Psr\Log\LoggerInterface;
 class OrderConsult extends Action
 {
     protected $collectionFactory;
+    protected $logger;
 
     public function __construct(
         Context $context,
-        CollectionFactory $collectionFactory
+        CollectionFactory $collectionFactory,
+        LoggerInterface $logger
     ) {
         parent::__construct($context);
         $this->collectionFactory = $collectionFactory;
+        $this->logger = $logger;
     }
 
     public function execute()
@@ -52,8 +55,13 @@ class OrderConsult extends Action
                     $dataTransaction = json_decode($response);
                     if(isset($dataTransaction) && isset($dataTransaction->success) && $dataTransaction->success){
                         $transactionData = $dataTransaction->data; 
-                        $x_ref_payco = $transactionData->referencePayco;
+                        $x_ref_payco = $transactionData->refPayco;
                         $status = $transactionData->status;
+                        $this->logger->info(
+                            'ePayco: Respuesta válida para RefPayco: ' . $x_ref_payco . 
+                            ' con estado: ' . $status .
+                            ' invoice: ' . $transactionData->invoice
+                        );
                         $pendingOrderState = Order::STATE_PENDING_PAYMENT;
                         if($status == 'Aceptada' || $status == 'aceptada'){
                             if($order->getState() != "canceled"  ){
@@ -83,6 +91,8 @@ class OrderConsult extends Action
                                     $order->setStatus(Order::STATE_CANCELED, true);
                                     $this->uploadInventory($objectManager,$orderId);
                                     $orderRepository->save($order);
+                                    $item->delete();
+                                    echo 'ID: ' . $item->getId() . ' - ref_payco: ' . $x_ref_payco.' - order_status: ' . $order->getState() . ' - response '. $status .'<br>';
                                 }
                             }else{
                                 $retry -= 1;
@@ -114,28 +124,42 @@ class OrderConsult extends Action
 
     public function uploadInventory($objectManager, $orderId){
         try{
-            $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-            $connection = $resource->getConnection();
-            $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
-            $result = $connection->fetchAll($sql);
-            if($result != null){
-                foreach($result as $sku){
-                    $sku  = $sku["sku"];
-                    $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
-                    $query = $connection->fetchAll($sql_);
-                    if($query != null){
-                        foreach($query as $productInventory){
-                            $connection->update(
-                                'inventory_reservation',
-                                ['quantity' => '0.0000'],
-                                ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
-                            );
-                        }
-                    }
-                }
+            $stockRegistry = $objectManager->get(\Magento\CatalogInventory\Api\StockRegistryInterface::class);
+            $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
+            foreach ($order->getAllItems() as $item) {
+                $sku = $item->getSku();
+                $qty = $item->getQtyOrdered();
+                $qty_ = $item->getQtyCanceled();
+                $stockItem = $stockRegistry->getStockItemBySku($sku);
+                $stockItem->setQty($stockItem->getQty() + $qty);
+                $stockItem->setIsInStock(true);
+
+                $stockRegistry->updateStockItemBySku($sku, $stockItem);
+                break;
             }
+            // $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+            // $connection = $resource->getConnection();
+            // $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
+            // $result = $connection->fetchAll($sql);
+            // if($result != null){
+            //     foreach($result as $sku){
+            //         $sku  = $sku["sku"];
+            //         $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
+            //         $query = $connection->fetchAll($sql_);
+            //         if($query != null){
+            //             foreach($query as $productInventory){
+            //                 $connection->update(
+            //                     'inventory_reservation',
+            //                     ['quantity' => '0.0000'],
+            //                     ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
+            //                 );
+            //             }
+            //         }
+            //     }
+            // }
         } catch(\Exception $e){
-           // return $result->setData(['Error actualizando inventario '+ $e->getMessage()]);
+            //return $result->setData([ $e->getMessage()]);
+            $this->logger->error('ePayco: Error en Cron: ' . $e->getMessage());
         }
     }
 

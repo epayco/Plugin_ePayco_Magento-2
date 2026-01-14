@@ -7,6 +7,7 @@
                 <value id="epayco-checkout" type="host">https://epayco-checkout-testing.s3.amazonaws.com</value>
                 <value id="apify-ms" type="host">https://eks-apify-service.epayco.io</value>
                 <value id="secure-epayco" type="host">https://eks-checkout-service.epayco.io</value>
+                <value id="new-checkout" type="host">https://new-checkout.epayco.io</value>
             </values>
         </policy>
 
@@ -14,10 +15,18 @@
             <values>
                 <value id="epayco-create-transaction" type="host">https://eks-ms-checkout-transaction-service.epayco.io</value>
                 <value id="apify-private-epayco" type="host">https://eks-apify-private-service.epayco.io</value>
-                <value id="secure-epayco" type="host">https://epayco-checkout-testing.s3.amazonaws.com</value>
+                <value id="epayco-checkout-testing" type="host">https://epayco-checkout-testing.s3.amazonaws.com</value>
                 <value id="epayco-apify" type="host">https://eks-apify-service.epayco.io</value>
-                <value id="secure-epayco" type="host">https://eks-checkout-service.epayco.io</value>
+                <value id="eks-checkout-service" type="host">https://eks-checkout-service.epayco.io</value>
+                <value id="new-checkout-secure" type="host">https://new-checkout.epayco.io</value>
             </values>
         </policy>
+
+        <policy id="frame-src">
+            <values>
+                <value id="new-checkout-frame" type="host">https://new-checkout.epayco.io</value>
+            </values>
+        </policy>
+        
     </policies>
 </csp_whitelist>

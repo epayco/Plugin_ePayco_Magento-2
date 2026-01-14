@@ -80,7 +80,7 @@ class Index extends Action implements CsrfAwareActionInterface
             
             // Validar que la orden existe
             if (!$order->getId()) {
-                $logger->error('Orden no encontrada con quote_id: ' . $orderId);
+                $logger->error('ePayco: Orden no encontrada con quote_id: ' . $orderId);
                 return $result->setData([
                     'success' => false,
                     'message' => 'Orden no encontrada',
@@ -90,8 +90,8 @@ class Index extends Action implements CsrfAwareActionInterface
             
             // Obtener el increment_id de la orden
             $incrementId = $order->getIncrementId();
-            $logger->info('Order ID: ' . $orderId . ', Increment ID: ' . $incrementId . ', Entity ID: ' . $order->getId());
-            
+            $logger->info('ePayco: Order ID: ' . $orderId . ', Increment ID: ' . $incrementId . ', Entity ID: ' . $order->getId());
+            // Actualizar el estado y estatus de la orden
             $order->setState(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
             $order->setStatus(\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT);
             $orderRepository->save($order);
