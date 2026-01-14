@@ -106,7 +106,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                     
                     // Validar que el orderId sea válido
                     if (!$orderId || $orderId <= 0) {
-                        error_log("ID de orden inválido: " . $orderId);
+                        error_log("ePayco: ID de orden inválido: " . $orderId);
                         if($urlRedirect != ''){
                             return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
                         } else {
@@ -124,7 +124,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                         $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
                     } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
                         // La orden no existe, registrar error y continuar
-                        error_log("Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
+                        error_log("ePayco: Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
                         if($urlRedirect != ''){
                             return $this->resultRedirectFactory->create()->setUrl($urlRedirect);
                         } else {
@@ -218,7 +218,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             
             // Validar que el orderId sea válido
             if (!$orderId || $orderId <= 0) {
-                error_log("ID de orden inválido: " . $orderId);
+                error_log("ePayco: ID de orden inválido: " . $orderId);
                 return $result->setData(['Error: ID de orden inválido ' . $orderId]);
             }
             
@@ -228,7 +228,7 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id', (Integer)$orderId);
             } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
                 // La orden no existe, registrar error y retornar respuesta de error
-                error_log("Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
+                error_log("ePayco: Orden no encontrada con ID: " . $orderId . " - Error: " . $e->getMessage());
                 return $result->setData(['Error: Orden no encontrada con ID ' . $orderId]);
             }
             $x_test_request = trim($_REQUEST['x_test_request']);
@@ -353,13 +353,13 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
             return $result->setData(['No se creo la orden']);
         }
     }catch(\Exception $e){
-        return $result->setData(['Error actualizando '+ $e->getMessage()]);
+        return $result->setData([$e->getMessage()]);
     }
     }
 
     public function uploadInventory($objectManager,$stockRegistry,$order, $orderId){
         try{
-            /*
+            
             foreach ($order->getAllItems() as $item) {
                 $sku = $item->getSku();
                 $qty = $item->getQtyOrdered();
@@ -368,38 +368,40 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 $stockItem->setQty($stockItem->getQty() + $qty);
                 $stockItem->setIsInStock(true);
 
-                //$stockRegistry->updateStockItemBySku($sku, $stockItem);
+                $stockRegistry->updateStockItemBySku($sku, $stockItem);
                 break;
             }
-            */
-            $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
-            $connection = $resource->getConnection();
-            $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
-            $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
-            $result = $connection->fetchAll($sql);
-            if($result != null){
-                foreach($result as $sku){
-                    $sku  = $sku["sku"];
-                    $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
-                    $query = $connection->fetchAll($sql_);
-                    if($query != null){
-                        foreach($query as $productInventory){
-                            $queryUpload = $connection->update(
-                                'inventory_reservation',
-                                ['quantity' => '0.0000'],
-                                ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
-                            );
-                        }
-                    }
-                }
-            }
+            
+            // $resource = $objectManager->get('Magento\Framework\App\ResourceConnection');
+            // $connection = $resource->getConnection();
+            // $order = $objectManager->create('\Magento\Sales\Model\Order')->loadByAttribute('quote_id',$orderId);
+            // $sql = "SELECT sku FROM quote_item WHERE quote_id = '$orderId'";
+            // $result = $connection->fetchAll($sql);
+            // if($result != null){
+            //     foreach($result as $sku){
+            //         $sku  = $sku["sku"];
+            //         $sql_ = "SELECT MAX(reservation_id),sku,quantity FROM inventory_reservation WHERE sku = '$sku' ORDER BY reservation_id ASC";
+            //         $query = $connection->fetchAll($sql_);
+            //         if($query != null){
+            //             foreach($query as $productInventory){
+            //                 $queryUpload = $connection->update(
+            //                     'inventory_reservation',
+            //                     ['quantity' => '0.0000'],
+            //                     ['reservation_id = ?' => $productInventory["MAX(reservation_id)"]]
+            //                 );
+            //             }
+            //         }
+            //     }
+            // }
         } catch(\Exception $e){
-           // return $result->setData(['Error actualizando inventario '+ $e->getMessage()]);
+            //return $result->setData([ $e->getMessage()]);
+            error_log('ePayco: Error al actualizar inventario de la orden ' . $orderId . ' - Error: ' . $e->getMessage());
         }
     }
 
     public function uploadStatusOrder($objectManager,$orderId){
         try{
+            $result = $this->resultJsonFactory->create();
             $collectionFactory = $objectManager->get(\PagoEpayco\Payco\Model\ResourceModel\OrderEpayco\CollectionFactory::class);
             $orderEpayco = $collectionFactory->create();
             $transaction = $orderEpayco->addFieldToFilter('order', $orderId);
@@ -416,7 +418,8 @@ class Index extends \Magento\Framework\App\Action\Action implements CsrfAwareAct
                 }
             } 
         } catch(\Exception $e){
-            //return $result->setData(['Error actualizando registro '+ $e->getMessage()]);
+            error_log('ePayco: Error al actualizar estado de la orden ' . $orderId . ' - Error: ' . $e->getMessage());  
+            return $result->setData([$e->getMessage()]);
         }
     }
 
