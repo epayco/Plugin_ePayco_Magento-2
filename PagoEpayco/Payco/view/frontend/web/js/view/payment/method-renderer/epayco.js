@@ -17,7 +17,7 @@ define(
         'Magento_Checkout/js/model/place-order',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Checkout/js/action/place-order',
-        'https://epayco-checkout-testing.s3.amazonaws.com/checkout.preprod-v2.js'
+        'https://checkout.epayco.co/checkout-v2.js'
     ],
     function ($,Component,url,quote,checkoutData,messageContainer, urlBuilder, customer,placeOrderService,fullScreenLoader,placeOrderAction,ePayco) {
         'use strict';
@@ -234,7 +234,7 @@ define(
                 const _this = this;
                 const headers = { "Content-Type": "application/json" };
                 const payment = function () {
-                    return fetch("https://eks-apify-service.epayco.io/payment/session/create", {
+                    return fetch("https://apify.epayco.co/payment/session/create", {
                         method: "POST",
                         body: JSON.stringify(info),
                         headers
@@ -279,7 +279,7 @@ define(
                 const exp = parseInt(localStorage.getItem(expKey) || '0', 10);
                 if (cached && Date.now() < exp) return Promise.resolve(cached);
 
-                return fetch("https://eks-apify-service.epayco.io/login", {
+                return fetch("https://apify.epayco.co/login", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
